@@ -8,13 +8,24 @@ use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, List, ListItem, ListState},
+    text::{Span, Spans},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
 use std::{io, time::Duration};
 
+enum PaneState {
+    Selected,
+    NotSelected,
+}
+
 struct StatefulList<T> {
     state: ListState,
+    items: Vec<T>,
+}
+
+struct SelectedPane<T> {
+    state: PaneState,
     items: Vec<T>,
 }
 
@@ -123,13 +134,29 @@ pub fn run_app<B: Backend>(
             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
                     match key.code {
-                        KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Char('j') => app.files.next(),
-                        KeyCode::Char('k') => app.files.previous(),
-                        // l goes to dir pane
-                        KeyCode::Char('l') => app.dirs.next(),
-                        // h goes to file pane
-                        KeyCode::Char('h') => app.dirs.previous(),
+                        KeyCode::Char('1') => {
+                            app.files.state.select(Some(0));
+                            app.dirs.state.select(None);
+                        }
+                        KeyCode::Char('2') => {
+                            app.dirs.state.select(Some(0));
+                            app.files.state.select(None);
+                        }
+                        KeyCode::Char('j') | KeyCode::Down => {
+                            if app.files.state.selected().is_some() {
+                                app.files.next();
+                            } else if app.dirs.state.selected().is_some() {
+                                app.dirs.next();
+                            }
+                        }
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            if app.files.state.selected().is_some() {
+                                app.files.previous();
+                            } else if app.dirs.state.selected().is_some() {
+                                app.dirs.previous();
+                            }
+                        }
+                        KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
                         _ => {}
                     }
                 }
@@ -167,9 +194,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(dirs_block, chunks[1]);
 
     let files: Vec<ListItem> = app.files.items.iter().map(|i| ListItem::new(i.0)).collect();
+    let selected_files = files.clone();
     let items = List::new(files)
         .block(Block::default().borders(Borders::ALL).title("Files"))
-        .highlight_symbol(">> ")
+        .highlight_symbol("> ")
         .highlight_style(
             Style::default()
                 .fg(Color::Blue)
@@ -178,13 +206,50 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_stateful_widget(items, chunks[0], &mut app.files.state);
 
     let dirs: Vec<ListItem> = app.dirs.items.iter().map(|i| ListItem::new(i.0)).collect();
+    let selected_dirs = dirs.clone();
     let items = List::new(dirs)
         .block(Block::default().borders(Borders::ALL).title("Directories"))
-        .highlight_symbol(">> ")
-        .highlight_style(
-            Style::default()
-                .fg(Color::Blue)
-                .add_modifier(Modifier::BOLD),
-        );
+        .highlight_symbol("> ")
+        .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
     f.render_stateful_widget(items, chunks[1], &mut app.dirs.state);
+
+    if app.files.state.selected().is_some() {
+        let files_block = Block::default().borders(Borders::ALL).title("Files");
+        f.render_widget(files_block, chunks[0]);
+        let files_block = List::new(selected_files)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Files")
+                    .border_style(
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+            )
+            .highlight_symbol("> ")
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Blue)
+                    .add_modifier(Modifier::BOLD),
+            );
+        f.render_stateful_widget(files_block, chunks[0], &mut app.files.state);
+    } else if app.dirs.state.selected().is_some() {
+        let dirs_block = Block::default().borders(Borders::ALL).title("Files");
+        f.render_widget(dirs_block, chunks[0]);
+        let dirs_block = List::new(selected_dirs)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Directories")
+                    .border_style(
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+            )
+            .highlight_symbol("> ")
+            .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
+        f.render_stateful_widget(dirs_block, chunks[1], &mut app.dirs.state);
+    }
 }
