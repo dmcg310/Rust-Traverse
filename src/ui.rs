@@ -9,23 +9,26 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, List, ListItem, ListState},
     Frame, Terminal,
 };
 use std::{io, time::Duration};
+use std::{process::Command, vec};
 
+#[allow(dead_code)]
 enum PaneState {
     Selected,
     NotSelected,
 }
 
-struct StatefulList<T> {
-    state: ListState,
+#[allow(dead_code)]
+struct SelectedPane<T> {
+    state: PaneState,
     items: Vec<T>,
 }
 
-struct SelectedPane<T> {
-    state: PaneState,
+struct StatefulList<T> {
+    state: ListState,
     items: Vec<T>,
 }
 
@@ -169,16 +172,61 @@ pub fn run_app<B: Backend>(
     }
 }
 
+fn selected_pane_content(file: &str) -> Vec<ListItem> {
+    let output = Command::new("ls")
+        .arg("-l")
+        .arg(file)
+        .output()
+        .expect("failed to execute process");
+
+    if output.stdout.is_empty() {
+        return vec![ListItem::new(Spans::from("No file selected"))];
+    }
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let mut items = Vec::new();
+
+    for line in output_str.lines() {
+        items.push(ListItem::new(Spans::from(line.to_string())));
+    }
+
+    items
+}
+
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let size = f.size();
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref())
+        .constraints([Constraint::Percentage(90), Constraint::Percentage(10)].as_ref())
         .split(size);
 
-    let dirs_block = Block::default().borders(Borders::ALL).title("Selected");
+    let selected_block = Block::default()
+        .borders(Borders::ALL)
+        .title("Selected Item Details");
+    f.render_widget(selected_block, chunks[1]);
 
-    f.render_widget(dirs_block, chunks[1]);
+    // now to sync the selected item in the files pane with the selected item in the dirs pane
+    // and vice versa
+    // we'll use the selected_pane_content function to get the content of the selected item
+    // and then render it in the selected pane
+    let selected_file = match app.files.state.selected() {
+        Some(i) => app.files.items[i].0,
+        None => "",
+    };
+    let selected_item: Vec<ListItem> = selected_pane_content(selected_file);
+
+    let items = List::new(selected_item)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Selected Item Details"),
+        )
+        .highlight_style(
+            Style::default()
+                .fg(Color::Blue)
+                .add_modifier(Modifier::BOLD),
+        );
+    f.render_stateful_widget(items, chunks[1], &mut app.files.state);
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -186,15 +234,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(chunks[0]);
 
     let files_block = Block::default().borders(Borders::ALL).title("Files");
-
     f.render_widget(files_block, chunks[0]);
 
     let dirs_block = Block::default().borders(Borders::ALL).title("Directories");
-
     f.render_widget(dirs_block, chunks[1]);
 
     let files: Vec<ListItem> = app.files.items.iter().map(|i| ListItem::new(i.0)).collect();
     let selected_files = files.clone();
+
     let items = List::new(files)
         .block(Block::default().borders(Borders::ALL).title("Files"))
         .highlight_symbol("> ")
@@ -203,19 +250,24 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 .fg(Color::Blue)
                 .add_modifier(Modifier::BOLD),
         );
+
     f.render_stateful_widget(items, chunks[0], &mut app.files.state);
 
     let dirs: Vec<ListItem> = app.dirs.items.iter().map(|i| ListItem::new(i.0)).collect();
     let selected_dirs = dirs.clone();
+
     let items = List::new(dirs)
         .block(Block::default().borders(Borders::ALL).title("Directories"))
         .highlight_symbol("> ")
         .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
+
     f.render_stateful_widget(items, chunks[1], &mut app.dirs.state);
 
     if app.files.state.selected().is_some() {
+        // to rerender pane
         let files_block = Block::default().borders(Borders::ALL).title("Files");
         f.render_widget(files_block, chunks[0]);
+
         let files_block = List::new(selected_files)
             .block(
                 Block::default()
@@ -233,10 +285,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                     .fg(Color::Blue)
                     .add_modifier(Modifier::BOLD),
             );
+
         f.render_stateful_widget(files_block, chunks[0], &mut app.files.state);
     } else if app.dirs.state.selected().is_some() {
+        // to rerender pane
         let dirs_block = Block::default().borders(Borders::ALL).title("Files");
         f.render_widget(dirs_block, chunks[0]);
+
         let dirs_block = List::new(selected_dirs)
             .block(
                 Block::default()
@@ -250,6 +305,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             )
             .highlight_symbol("> ")
             .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
+
         f.render_stateful_widget(dirs_block, chunks[1], &mut app.dirs.state);
     }
 }
