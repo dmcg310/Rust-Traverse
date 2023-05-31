@@ -5,14 +5,22 @@ use crossterm::{
 };
 use ratatui::{
     backend::CrosstermBackend,
-    widgets::{Block, Borders},
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    widgets::Borders,
+    widgets::{Block, List, ListItem, ListState},
     Terminal,
 };
 use std::{io, thread, time::Duration};
 
 fn main() -> Result<(), io::Error> {
-    let files = ["foo.txt", "bar.rs", "baz.js"];
-    let dirs = ["foo", "bar", "baz"];
+    let files = [ListItem::new("bar.rs"), ListItem::new("baz.js")];
+
+    let dirs = [
+        ListItem::new("foo"),
+        ListItem::new("bar"),
+        ListItem::new("baz"),
+    ];
 
     enable_raw_mode()?;
     let stdout = io::stdout();
@@ -24,8 +32,49 @@ fn main() -> Result<(), io::Error> {
 
     terminal.draw(|f| {
         let size = f.size();
-        let block = Block::default().title("Block").borders(Borders::ALL);
-        f.render_widget(block, size);
+
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref())
+            .split(size);
+
+        let dirs_block = Block::default().borders(Borders::ALL).title("Selected");
+
+        f.render_widget(dirs_block, chunks[1]);
+
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+            .split(chunks[0]);
+
+        let files_block = Block::default().borders(Borders::ALL).title("Files");
+
+        f.render_widget(files_block, chunks[0]);
+
+        let dirs_block = Block::default().borders(Borders::ALL).title("Directories");
+
+        f.render_widget(dirs_block, chunks[1]);
+
+        let files = List::new(files)
+            .block(Block::default().borders(Borders::ALL).title("Files"))
+            .highlight_symbol(">> ")
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Blue)
+                    .add_modifier(Modifier::BOLD),
+            );
+
+        let dirs = List::new(dirs)
+            .block(Block::default().borders(Borders::ALL).title("Directories"))
+            .highlight_symbol(">> ")
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Blue)
+                    .add_modifier(Modifier::BOLD),
+            );
+
+        f.render_stateful_widget(files, chunks[0], &mut ListState::default());
+        f.render_stateful_widget(dirs, chunks[1], &mut ListState::default());
     })?;
 
     thread::spawn(move || loop {
