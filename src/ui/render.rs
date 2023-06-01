@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::ui::pane::{get_du, get_pwd, selected_pane_content};
+use crate::ui::pane::{get_pwd, selected_pane_content};
 use anyhow::Result;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
@@ -97,17 +97,31 @@ pub fn run_app<B: Backend>(
                                     path.pop();
 
                                     std::env::set_current_dir(path).unwrap();
-                                    app.update_files();
-                                    app.update_dirs();
+                                    app.cur_dir = get_pwd();
                                 } else {
                                     let dir = app.dirs.items[app.dirs.state.selected().unwrap()]
                                         .0
                                         .clone();
 
                                     std::env::set_current_dir(dir).unwrap();
-                                    app.update_files();
-                                    app.update_dirs();
+                                    app.cur_dir = get_pwd();
                                 }
+                                app.update_files();
+                                app.update_dirs();
+
+                                if let Some(selected) = app.files.state.selected() {
+                                    if selected >= app.files.items.len() {
+                                        if !app.files.items.is_empty() {
+                                            app.files.state.select(Some(
+                                                app.files.items.len().saturating_sub(1),
+                                            ));
+                                        } else {
+                                            app.files.state.select(None);
+                                        }
+                                    }
+                                }
+
+                                app.dirs.state.select(Some(0));
                             }
                         }
                         KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
