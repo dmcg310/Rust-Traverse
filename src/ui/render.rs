@@ -1,6 +1,7 @@
-use crate::app::App;
+use crate::app::{App, InputBox};
 use crate::ui::pane::{get_pwd, selected_pane_content};
 use anyhow::Result;
+use crossterm::event::KeyModifiers;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
     execute,
@@ -8,10 +9,10 @@ use crossterm::{
 };
 use ratatui::backend::Backend;
 use ratatui::layout::Alignment;
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Clear, Paragraph};
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     terminal::Terminal,
     text::Spans,
@@ -56,9 +57,11 @@ pub fn run_app<B: Backend>(
     tick_rate: Duration,
 ) -> Result<()> {
     let mut last_tick = std::time::Instant::now();
+    let mut input = String::new();
+    let mut input_active = false;
 
     loop {
-        terminal.draw(|f| ui(f, &mut app))?;
+        terminal.draw(|f| ui(f, &mut app, &mut input))?;
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -88,6 +91,43 @@ pub fn run_app<B: Backend>(
                                 app.files.previous();
                             } else if app.dirs.state.selected().is_some() {
                                 app.dirs.previous();
+                            }
+                        }
+                        KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                            if input_active {
+                                App::create_file(&input);
+                                app.update_files();
+                                input.clear();
+                                app.show_popup = false;
+                                input_active = false;
+                            } else {
+                                app.show_popup = true;
+                                input_active = true;
+                            }
+                        }
+                        KeyCode::Char('n') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                            if input_active {
+                                App::create_dir(&input);
+                                app.update_dirs();
+                                input.clear();
+                                app.show_popup = false;
+                                input_active = false;
+                            } else {
+                                app.show_popup = true;
+                                input_active = true;
+                            }
+                        }
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            if input_active {
+                                input_active = false;
+                                app.show_popup = false;
+                            } else {
+                                return Ok(());
+                            }
+                        }
+                        KeyCode::Char(c) => {
+                            if input_active {
+                                input.push(c);
                             }
                         }
                         KeyCode::Enter => {
@@ -120,11 +160,14 @@ pub fn run_app<B: Backend>(
                                         }
                                     }
                                 }
-
                                 app.dirs.state.select(Some(0));
                             }
                         }
-                        KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
+                        KeyCode::Backspace => {
+                            if input_active {
+                                input.pop();
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -137,7 +180,7 @@ pub fn run_app<B: Backend>(
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
     let size = f.size();
 
     let chunks = Layout::default()
@@ -243,6 +286,23 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
     f.render_stateful_widget(items, chunks[1], &mut app.dirs.state);
 
+    // input block
+    if app.show_popup {
+        let block = Block::default()
+            .title("Name")
+            .borders(Borders::ALL)
+            .title_alignment(Alignment::Center);
+        let area = centered_rect(30, 7, size);
+        f.render_widget(Clear, area);
+        f.render_widget(block, area);
+
+        let input_box = Paragraph::new(input.clone())
+            .style(Style::default())
+            .block(Block::default().borders(Borders::ALL))
+            .alignment(Alignment::Left);
+        f.render_widget(input_box, area);
+    }
+
     if app.files.state.selected().is_some() {
         // to rerender pane
         let files_block = Block::default().borders(Borders::ALL).title("Files");
@@ -288,4 +348,30 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
         f.render_stateful_widget(dirs_block, chunks[1], &mut app.dirs.state);
     }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }

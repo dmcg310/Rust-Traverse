@@ -2,13 +2,16 @@ use crate::ui::{
     pane::{get_du, get_pwd},
     stateful_list::StatefulList,
 };
-use std::fs::read_dir;
+use anyhow::Result;
+use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
+use std::fs::{self, read_dir, File};
 
 pub struct App {
     pub files: StatefulList<(String, String)>,
     pub dirs: StatefulList<(String, String)>,
     pub cur_du: String,
     pub cur_dir: String,
+    pub show_popup: bool,
 }
 
 impl App {
@@ -39,6 +42,7 @@ impl App {
             dirs,
             cur_du,
             cur_dir,
+            show_popup: false,
         }
     }
 
@@ -63,5 +67,47 @@ impl App {
                 self.dirs.items.push((temp.clone(), temp));
             }
         }
+    }
+
+    pub fn create_file(input: &str) -> bool {
+        if File::create(input).is_ok() {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn create_dir(input: &str) -> bool {
+        format!("./{}", input);
+        if fs::create_dir(input).is_ok() {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+pub struct InputBox<'a> {
+    text: &'a str,
+    style: Style,
+}
+
+impl<'a> InputBox<'a> {
+    pub fn new(text: &'a str) -> InputBox<'a> {
+        InputBox {
+            text,
+            style: Style::default(),
+        }
+    }
+
+    pub fn style(mut self, style: Style) -> InputBox<'a> {
+        self.style = style;
+        self
+    }
+}
+
+impl<'a> Widget for InputBox<'a> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        buf.set_stringn(area.x, area.y, self.text, area.width as usize, self.style);
     }
 }
