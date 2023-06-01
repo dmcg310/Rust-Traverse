@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::ui::pane::selected_pane_content;
+use crate::ui::pane::{get_du, get_pwd, selected_pane_content};
 use anyhow::Result;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
@@ -7,6 +7,8 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::backend::Backend;
+use ratatui::layout::Alignment;
+use ratatui::widgets::Paragraph;
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -20,21 +22,24 @@ use std::{io, time::Duration};
 
 pub fn render() -> Result<()> {
     enable_raw_mode()?;
+
     let stdout = io::stdout();
     execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture,)?;
+
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-
     let tick_rate = Duration::from_millis(250);
     let app = App::new();
     let res = run_app(&mut terminal, app, tick_rate);
 
     disable_raw_mode()?;
+
     execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
         DisableMouseCapture,
     )?;
+
     terminal.show_cursor()?;
 
     if let Err(e) = res {
@@ -50,6 +55,7 @@ pub fn run_app<B: Backend>(
     tick_rate: Duration,
 ) -> Result<()> {
     let mut last_tick = std::time::Instant::now();
+
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
 
@@ -98,21 +104,43 @@ pub fn run_app<B: Backend>(
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let size = f.size();
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(90), Constraint::Percentage(10)].as_ref())
+        .constraints([Constraint::Percentage(94), Constraint::Percentage(6)].as_ref())
         .split(size);
 
-    let selected_block = Block::default()
-        .borders(Borders::ALL)
-        .title("Selected Item Details");
-    f.render_widget(selected_block, chunks[1]);
+    let bottom_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+            ]
+            .as_ref(),
+        )
+        .split(chunks[1]);
+
+    let selected_block = Block::default().borders(Borders::ALL);
+    f.render_widget(selected_block, bottom_chunks[0]);
+
+    let current_dir_paragraph = Paragraph::new(get_pwd())
+        .block(Block::default().borders(Borders::ALL))
+        .alignment(Alignment::Center);
+    f.render_widget(current_dir_paragraph, bottom_chunks[1]);
+
+    let disk_paragraph = Paragraph::new(get_du())
+        .block(Block::default().borders(Borders::ALL))
+        .alignment(Alignment::Center);
+    f.render_widget(disk_paragraph, bottom_chunks[2]);
 
     let binding = "".to_string();
     let selected_file = match app.files.state.selected() {
         Some(i) => &app.files.items[i].0,
         None => &binding,
     };
+
     let binding = "".to_string();
     let selected_dir = match app.dirs.state.selected() {
         Some(i) => &app.dirs.items[i].0,
@@ -128,11 +156,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     };
 
     let items = List::new(selected_item)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Selected Item Details"),
-        )
+        .block(Block::default().borders(Borders::ALL).title("Details"))
         .highlight_style(
             Style::default()
                 .fg(Color::Blue)
@@ -167,7 +191,6 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 .fg(Color::Blue)
                 .add_modifier(Modifier::BOLD),
         );
-
     f.render_stateful_widget(items, chunks[0], &mut app.files.state);
 
     let dirs: Vec<ListItem> = app
@@ -176,13 +199,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .iter()
         .map(|i| ListItem::new(i.0.clone()))
         .collect();
+
     let selected_dirs = dirs.clone();
 
     let items = List::new(dirs)
         .block(Block::default().borders(Borders::ALL).title("Directories"))
         .highlight_symbol("> ")
         .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
-
     f.render_stateful_widget(items, chunks[1], &mut app.dirs.state);
 
     if app.files.state.selected().is_some() {
