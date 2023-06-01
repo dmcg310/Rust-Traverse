@@ -1,5 +1,7 @@
+mod app;
 mod ui;
+use ui::render::render;
 
 fn main() {
-    Some(ui::render());
+    Some(render()).expect("Failed to render");
 }

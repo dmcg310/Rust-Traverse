@@ -1,98 +1,22 @@
+use crate::app::App;
+use crate::ui::pane::selected_pane_content;
 use anyhow::Result;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use ratatui::backend::Backend;
 use ratatui::{
-    backend::{Backend, CrosstermBackend},
+    backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, ListState},
-    Frame, Terminal,
+    terminal::Terminal,
+    text::Spans,
+    widgets::{Block, Borders, List, ListItem},
+    Frame,
 };
 use std::{io, time::Duration};
-use std::{process::Command, vec};
-
-#[allow(dead_code)]
-enum PaneState {
-    Selected,
-    NotSelected,
-}
-
-#[allow(dead_code)]
-struct SelectedPane<T> {
-    state: PaneState,
-    items: Vec<T>,
-}
-
-struct StatefulList<T> {
-    state: ListState,
-    items: Vec<T>,
-}
-
-impl<T> StatefulList<T> {
-    fn with_items(items: Vec<T>) -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
-            items,
-        }
-    }
-
-    fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-
-        self.state.select(Some(i));
-    }
-
-    fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-
-        self.state.select(Some(i));
-    }
-}
-
-pub struct App {
-    files: StatefulList<(&'static str, &'static str)>,
-    dirs: StatefulList<(&'static str, &'static str)>,
-}
-
-impl App {
-    fn new() -> App {
-        App {
-            files: StatefulList::with_items(vec![
-                ("main.rs", "src/main.rs"),
-                ("ui.rs", "src/ui.rs"),
-                ("Cargo.toml", "Cargo.toml"),
-                ("Cargo.lock", "Cargo.lock"),
-            ]),
-            dirs: StatefulList::with_items(vec![
-                ("src", "src/"),
-                ("target", "target/"),
-                (".git", ".git/"),
-            ]),
-        }
-    }
-}
 
 pub fn render() -> Result<()> {
     enable_raw_mode()?;
@@ -172,27 +96,6 @@ pub fn run_app<B: Backend>(
     }
 }
 
-fn selected_pane_content(file: &str) -> Vec<ListItem> {
-    let output = Command::new("ls")
-        .arg("-l")
-        .arg(file)
-        .output()
-        .expect("failed to execute process");
-
-    if output.stdout.is_empty() {
-        return vec![ListItem::new(Spans::from("No file selected"))];
-    }
-
-    let output_str = String::from_utf8_lossy(&output.stdout);
-    let mut items = Vec::new();
-
-    for line in output_str.lines() {
-        items.push(ListItem::new(Spans::from(line.to_string())));
-    }
-
-    items
-}
-
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let size = f.size();
     let chunks = Layout::default()
@@ -205,15 +108,24 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .title("Selected Item Details");
     f.render_widget(selected_block, chunks[1]);
 
-    // now to sync the selected item in the files pane with the selected item in the dirs pane
-    // and vice versa
-    // we'll use the selected_pane_content function to get the content of the selected item
-    // and then render it in the selected pane
+    let binding = "".to_string();
     let selected_file = match app.files.state.selected() {
-        Some(i) => app.files.items[i].0,
-        None => "",
+        Some(i) => &app.files.items[i].0,
+        None => &binding,
     };
-    let selected_item: Vec<ListItem> = selected_pane_content(selected_file);
+    let binding = "".to_string();
+    let selected_dir = match app.dirs.state.selected() {
+        Some(i) => &app.dirs.items[i].0,
+        None => &binding,
+    };
+
+    let selected_item = if !selected_file.is_empty() {
+        selected_pane_content(selected_file)
+    } else if !selected_dir.is_empty() {
+        selected_pane_content(selected_dir)
+    } else {
+        vec![ListItem::new(Spans::from("No file selected"))]
+    };
 
     let items = List::new(selected_item)
         .block(
@@ -239,7 +151,12 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let dirs_block = Block::default().borders(Borders::ALL).title("Directories");
     f.render_widget(dirs_block, chunks[1]);
 
-    let files: Vec<ListItem> = app.files.items.iter().map(|i| ListItem::new(i.0)).collect();
+    let files: Vec<ListItem> = app
+        .files
+        .items
+        .iter()
+        .map(|i| ListItem::new(i.0.clone()))
+        .collect();
     let selected_files = files.clone();
 
     let items = List::new(files)
@@ -253,7 +170,12 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     f.render_stateful_widget(items, chunks[0], &mut app.files.state);
 
-    let dirs: Vec<ListItem> = app.dirs.items.iter().map(|i| ListItem::new(i.0)).collect();
+    let dirs: Vec<ListItem> = app
+        .dirs
+        .items
+        .iter()
+        .map(|i| ListItem::new(i.0.clone()))
+        .collect();
     let selected_dirs = dirs.clone();
 
     let items = List::new(dirs)
