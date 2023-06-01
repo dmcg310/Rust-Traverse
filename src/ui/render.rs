@@ -1,9 +1,8 @@
-use crate::app::{App, InputBox};
-use crate::ui::pane::{get_pwd, selected_pane_content};
+use crate::app::{centered_rect, App};
+use crate::ui::pane::selected_pane_content;
 use anyhow::Result;
-use crossterm::event::KeyModifiers;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -22,7 +21,10 @@ use ratatui::{
 use std::io;
 use std::time::Duration;
 
-pub fn render() -> Result<()> {
+use super::pane::{get_du, get_pwd};
+use super::run_app::run_app;
+
+pub fn init() -> Result<()> {
     enable_raw_mode()?;
 
     let stdout = io::stdout();
@@ -51,136 +53,44 @@ pub fn render() -> Result<()> {
     Ok(())
 }
 
-pub fn run_app<B: Backend>(
-    terminal: &mut Terminal<B>,
-    mut app: App,
-    tick_rate: Duration,
-) -> Result<()> {
-    let mut last_tick = std::time::Instant::now();
-    let mut input = String::new();
-    let mut input_active = false;
+pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
+    let cur_dir = app.cur_dir.clone();
+    let cur_du = app.cur_du.clone();
 
-    loop {
-        terminal.draw(|f| ui(f, &mut app, &mut input))?;
+    let size = f.size();
 
-        let timeout = tick_rate
-            .checked_sub(last_tick.elapsed())
-            .unwrap_or_else(|| Duration::from_secs(0));
+    let top_chunks = top_chunks(f);
+    let bottom_chunks = bottom_chunks(f);
 
-        if crossterm::event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    match key.code {
-                        KeyCode::Char('1') => {
-                            app.files.state.select(Some(0));
-                            app.dirs.state.select(None);
-                        }
-                        KeyCode::Char('2') => {
-                            app.dirs.state.select(Some(0));
-                            app.files.state.select(None);
-                        }
-                        KeyCode::Char('j') | KeyCode::Down => {
-                            if app.files.state.selected().is_some() {
-                                app.files.next();
-                            } else if app.dirs.state.selected().is_some() {
-                                app.dirs.next();
-                            }
-                        }
-                        KeyCode::Char('k') | KeyCode::Up => {
-                            if app.files.state.selected().is_some() {
-                                app.files.previous();
-                            } else if app.dirs.state.selected().is_some() {
-                                app.dirs.previous();
-                            }
-                        }
-                        KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                            if input_active {
-                                App::create_file(&input);
-                                app.update_files();
-                                input.clear();
-                                app.show_popup = false;
-                                input_active = false;
-                            } else {
-                                app.show_popup = true;
-                                input_active = true;
-                            }
-                        }
-                        KeyCode::Char('n') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                            if input_active {
-                                App::create_dir(&input);
-                                app.update_dirs();
-                                input.clear();
-                                app.show_popup = false;
-                                input_active = false;
-                            } else {
-                                app.show_popup = true;
-                                input_active = true;
-                            }
-                        }
-                        KeyCode::Char('q') | KeyCode::Esc => {
-                            if input_active {
-                                input_active = false;
-                                app.show_popup = false;
-                            } else {
-                                return Ok(());
-                            }
-                        }
-                        KeyCode::Char(c) => {
-                            if input_active {
-                                input.push(c);
-                            }
-                        }
-                        KeyCode::Enter => {
-                            if app.dirs.state.selected().is_some() {
-                                if app.dirs.items[app.dirs.state.selected().unwrap()].0 == "../" {
-                                    let mut path = std::env::current_dir().unwrap();
-                                    path.pop();
+    render_files(f, app, &top_chunks);
+    render_dirs(f, app, &top_chunks);
+    render_details(f, app, &bottom_chunks, cur_dir, cur_du);
+    render_input(f, app, size, input);
 
-                                    std::env::set_current_dir(path).unwrap();
-                                    app.cur_dir = get_pwd();
-                                } else {
-                                    let dir = app.dirs.items[app.dirs.state.selected().unwrap()]
-                                        .0
-                                        .clone();
-
-                                    std::env::set_current_dir(dir).unwrap();
-                                    app.cur_dir = get_pwd();
-                                }
-                                app.update_files();
-                                app.update_dirs();
-
-                                if let Some(selected) = app.files.state.selected() {
-                                    if selected >= app.files.items.len() {
-                                        if !app.files.items.is_empty() {
-                                            app.files.state.select(Some(
-                                                app.files.items.len().saturating_sub(1),
-                                            ));
-                                        } else {
-                                            app.files.state.select(None);
-                                        }
-                                    }
-                                }
-                                app.dirs.state.select(Some(0));
-                            }
-                        }
-                        KeyCode::Backspace => {
-                            if input_active {
-                                input.pop();
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        }
-
-        if last_tick.elapsed() >= tick_rate {
-            last_tick = std::time::Instant::now();
-        }
+    if app.files.state.selected().is_some() {
+        render_files(f, app, &top_chunks)
+    } else if app.dirs.state.selected().is_some() {
+        render_dirs(f, app, &top_chunks)
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
+fn top_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
+    let size = f.size();
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(94), Constraint::Percentage(6)].as_ref())
+        .split(size);
+
+    let top_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(chunks[0]);
+
+    (top_chunks).to_vec()
+}
+
+fn bottom_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
     let size = f.size();
 
     let chunks = Layout::default()
@@ -190,6 +100,62 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
 
     let bottom_chunks = Layout::default()
         .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(100)])
+        .split(chunks[1]);
+
+    (bottom_chunks).to_vec()
+}
+
+fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
+    let files_block = Block::default().borders(Borders::ALL).title("Files");
+    f.render_widget(files_block, chunks[0]);
+
+    let files: Vec<ListItem> = app
+        .files
+        .items
+        .iter()
+        .map(|i| ListItem::new(i.0.clone()))
+        .collect();
+
+    let items = List::new(files)
+        .block(Block::default().borders(Borders::ALL).title("Files"))
+        .highlight_symbol("> ")
+        .highlight_style(
+            Style::default()
+                .fg(Color::Blue)
+                .add_modifier(Modifier::BOLD),
+        );
+    f.render_stateful_widget(items, chunks[0], &mut app.files.state);
+}
+
+fn render_dirs<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
+    app.cur_dir = get_pwd();
+    let dirs_block = Block::default().borders(Borders::ALL).title("Directories");
+    f.render_widget(dirs_block, chunks[1]);
+
+    let dirs: Vec<ListItem> = app
+        .dirs
+        .items
+        .iter()
+        .map(|i| ListItem::new(i.0.clone()))
+        .collect();
+
+    let items = List::new(dirs)
+        .block(Block::default().borders(Borders::ALL).title("Directories"))
+        .highlight_symbol("> ")
+        .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
+    f.render_stateful_widget(items, chunks[1], &mut app.dirs.state);
+}
+
+fn render_details<B: Backend>(
+    f: &mut Frame<B>,
+    app: &mut App,
+    chunks: &[Rect],
+    cur_dir: String,
+    cur_du: String,
+) {
+    let details_chunks = Layout::default()
+        .direction(Direction::Horizontal)
         .constraints(
             [
                 Constraint::Percentage(33),
@@ -198,37 +164,22 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
             ]
             .as_ref(),
         )
-        .split(chunks[1]);
+        .split(chunks[0]);
 
-    let selected_block = Block::default().borders(Borders::ALL);
-    f.render_widget(selected_block, bottom_chunks[0]);
-
-    let current_dir_paragraph = Paragraph::new(app.cur_dir.clone())
-        .block(Block::default().borders(Borders::ALL))
-        .alignment(Alignment::Center);
-    f.render_widget(current_dir_paragraph, bottom_chunks[1]);
-
-    let disk_paragraph = Paragraph::new(app.cur_du.clone())
-        .block(Block::default().borders(Borders::ALL))
-        .alignment(Alignment::Center);
-    f.render_widget(disk_paragraph, bottom_chunks[2]);
-
-    let binding = "".to_string();
     let selected_file = match app.files.state.selected() {
         Some(i) => &app.files.items[i].0,
-        None => &binding,
+        None => "",
     };
 
-    let binding = "".to_string();
     let selected_dir = match app.dirs.state.selected() {
         Some(i) => &app.dirs.items[i].0,
-        None => &binding,
+        None => "",
     };
 
     let selected_item = if !selected_file.is_empty() {
-        selected_pane_content(selected_file)
+        selected_pane_content(&selected_file.to_string())
     } else if !selected_dir.is_empty() {
-        selected_pane_content(selected_dir)
+        selected_pane_content(&selected_dir.to_string())
     } else {
         vec![ListItem::new(Spans::from("No file selected"))]
     };
@@ -240,58 +191,32 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
                 .fg(Color::Blue)
                 .add_modifier(Modifier::BOLD),
         );
-    f.render_stateful_widget(items, chunks[1], &mut app.files.state);
+    f.render_widget(items, details_chunks[0]);
 
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(chunks[0]);
+    let pwd_paragraph = Paragraph::new(cur_dir)
+        .style(Style::default())
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Current Directory"),
+        )
+        .alignment(Alignment::Left);
+    f.render_widget(pwd_paragraph, details_chunks[1]);
 
-    let files_block = Block::default().borders(Borders::ALL).title("Files");
-    f.render_widget(files_block, chunks[0]);
+    let du_paragraph = Paragraph::new(cur_du)
+        .style(Style::default())
+        .block(Block::default().borders(Borders::ALL).title("Disk Usage"))
+        .alignment(Alignment::Left);
+    f.render_widget(du_paragraph, details_chunks[2]);
+}
 
-    let dirs_block = Block::default().borders(Borders::ALL).title("Directories");
-    f.render_widget(dirs_block, chunks[1]);
-
-    let files: Vec<ListItem> = app
-        .files
-        .items
-        .iter()
-        .map(|i| ListItem::new(i.0.clone()))
-        .collect();
-    let selected_files = files.clone();
-
-    let items = List::new(files)
-        .block(Block::default().borders(Borders::ALL).title("Files"))
-        .highlight_symbol("> ")
-        .highlight_style(
-            Style::default()
-                .fg(Color::Blue)
-                .add_modifier(Modifier::BOLD),
-        );
-    f.render_stateful_widget(items, chunks[0], &mut app.files.state);
-
-    let dirs: Vec<ListItem> = app
-        .dirs
-        .items
-        .iter()
-        .map(|i| ListItem::new(i.0.clone()))
-        .collect();
-
-    let selected_dirs = dirs.clone();
-
-    let items = List::new(dirs)
-        .block(Block::default().borders(Borders::ALL).title("Directories"))
-        .highlight_symbol("> ")
-        .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
-    f.render_stateful_widget(items, chunks[1], &mut app.dirs.state);
-
-    // input block
+fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &mut String) {
     if app.show_popup {
         let block = Block::default()
             .title("Name")
             .borders(Borders::ALL)
             .title_alignment(Alignment::Center);
+
         let area = centered_rect(30, 7, size);
         f.render_widget(Clear, area);
         f.render_widget(block, area);
@@ -302,76 +227,4 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
             .alignment(Alignment::Left);
         f.render_widget(input_box, area);
     }
-
-    if app.files.state.selected().is_some() {
-        // to rerender pane
-        let files_block = Block::default().borders(Borders::ALL).title("Files");
-        f.render_widget(files_block, chunks[0]);
-
-        let files_block = List::new(selected_files)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Files")
-                    .border_style(
-                        Style::default()
-                            .fg(Color::Yellow)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-            )
-            .highlight_symbol("> ")
-            .highlight_style(
-                Style::default()
-                    .fg(Color::Blue)
-                    .add_modifier(Modifier::BOLD),
-            );
-
-        f.render_stateful_widget(files_block, chunks[0], &mut app.files.state);
-    } else if app.dirs.state.selected().is_some() {
-        // to rerender pane
-        let dirs_block = Block::default().borders(Borders::ALL).title("Files");
-        f.render_widget(dirs_block, chunks[0]);
-
-        let dirs_block = List::new(selected_dirs)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Directories")
-                    .border_style(
-                        Style::default()
-                            .fg(Color::Yellow)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-            )
-            .highlight_symbol("> ")
-            .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
-
-        f.render_stateful_widget(dirs_block, chunks[1], &mut app.dirs.state);
-    }
-}
-
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
 }

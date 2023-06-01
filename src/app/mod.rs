@@ -2,8 +2,12 @@ use crate::ui::{
     pane::{get_du, get_pwd},
     stateful_list::StatefulList,
 };
-use anyhow::Result;
-use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
+use ratatui::{
+    buffer::Buffer,
+    layout::{Constraint, Layout, Rect},
+    style::Style,
+    widgets::{ListState, Widget},
+};
 use std::fs::{self, read_dir, File};
 
 pub struct App {
@@ -12,6 +16,7 @@ pub struct App {
     pub cur_du: String,
     pub cur_dir: String,
     pub show_popup: bool,
+    pub selected_item_state: ListState,
 }
 
 impl App {
@@ -43,6 +48,7 @@ impl App {
             cur_du,
             cur_dir,
             show_popup: false,
+            selected_item_state: ListState::default(),
         }
     }
 
@@ -92,22 +98,34 @@ pub struct InputBox<'a> {
     style: Style,
 }
 
-impl<'a> InputBox<'a> {
-    pub fn new(text: &'a str) -> InputBox<'a> {
-        InputBox {
-            text,
-            style: Style::default(),
-        }
-    }
-
-    pub fn style(mut self, style: Style) -> InputBox<'a> {
-        self.style = style;
-        self
-    }
-}
-
 impl<'a> Widget for InputBox<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         buf.set_stringn(area.x, area.y, self.text, area.width as usize, self.style);
     }
+}
+
+pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(ratatui::layout::Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(ratatui::layout::Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }
