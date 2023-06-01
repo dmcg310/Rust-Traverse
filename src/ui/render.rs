@@ -18,7 +18,8 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
     Frame,
 };
-use std::{io, time::Duration};
+use std::io;
+use std::time::Duration;
 
 pub fn render() -> Result<()> {
     enable_raw_mode()?;
@@ -89,6 +90,26 @@ pub fn run_app<B: Backend>(
                                 app.dirs.previous();
                             }
                         }
+                        KeyCode::Enter => {
+                            if app.dirs.state.selected().is_some() {
+                                if app.dirs.items[app.dirs.state.selected().unwrap()].0 == "../" {
+                                    let mut path = std::env::current_dir().unwrap();
+                                    path.pop();
+
+                                    std::env::set_current_dir(path).unwrap();
+                                    app.update_files();
+                                    app.update_dirs();
+                                } else {
+                                    let dir = app.dirs.items[app.dirs.state.selected().unwrap()]
+                                        .0
+                                        .clone();
+
+                                    std::env::set_current_dir(dir).unwrap();
+                                    app.update_files();
+                                    app.update_dirs();
+                                }
+                            }
+                        }
                         KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
                         _ => {}
                     }
@@ -125,12 +146,12 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let selected_block = Block::default().borders(Borders::ALL);
     f.render_widget(selected_block, bottom_chunks[0]);
 
-    let current_dir_paragraph = Paragraph::new(get_pwd())
+    let current_dir_paragraph = Paragraph::new(app.cur_dir.clone())
         .block(Block::default().borders(Borders::ALL))
         .alignment(Alignment::Center);
     f.render_widget(current_dir_paragraph, bottom_chunks[1]);
 
-    let disk_paragraph = Paragraph::new(get_du())
+    let disk_paragraph = Paragraph::new(app.cur_du.clone())
         .block(Block::default().borders(Borders::ALL))
         .alignment(Alignment::Center);
     f.render_widget(disk_paragraph, bottom_chunks[2]);
