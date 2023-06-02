@@ -11,6 +11,8 @@ use std::time::Duration;
 pub enum Command {
     CreateFile,
     CreateDir,
+    RenameFile,
+    RenameDir,
 }
 
 pub fn run_app<B: Backend>(
@@ -98,6 +100,37 @@ pub fn run_app<B: Backend>(
                                 app.update_dirs();
                             }
                         }
+                        KeyCode::Char('r') => {
+                            if app.files.state.selected().is_some() {
+                                if (input_active == false
+                                    && app.last_command != Some(Command::RenameFile))
+                                    || (input_active == true && app.last_command.is_none())
+                                {
+                                    input_active = true;
+                                    app.show_popup = true;
+                                    app.last_command = Some(Command::RenameFile);
+                                    input = app.files.items[app.files.state.selected().unwrap()]
+                                        .0
+                                        .clone();
+                                } else {
+                                    input.push('r');
+                                }
+                            } else if app.dirs.state.selected().is_some() {
+                                if (input_active == false
+                                    && app.last_command != Some(Command::RenameDir))
+                                    || (input_active == true && app.last_command.is_none())
+                                {
+                                    input_active = true;
+                                    app.show_popup = true;
+                                    app.last_command = Some(Command::RenameDir);
+                                    input = app.dirs.items[app.dirs.state.selected().unwrap()]
+                                        .0
+                                        .clone();
+                                } else {
+                                    input.push('r');
+                                }
+                            }
+                        }
                         KeyCode::Char('q') | KeyCode::Esc => {
                             if input_active {
                                 input_active = false;
@@ -119,6 +152,22 @@ pub fn run_app<B: Backend>(
                                     app.last_command = None;
                                 } else if app.last_command == Some(Command::CreateDir) {
                                     App::create_dir(&input);
+                                    app.update_dirs();
+                                    app.last_command = None;
+                                } else if app.last_command == Some(Command::RenameFile) {
+                                    let file = app.files.items[app.files.state.selected().unwrap()]
+                                        .0
+                                        .clone();
+
+                                    std::fs::rename(file, input.clone()).unwrap();
+                                    app.update_files();
+                                    app.last_command = None;
+                                } else if app.last_command == Some(Command::RenameDir) {
+                                    let dir = app.dirs.items[app.dirs.state.selected().unwrap()]
+                                        .0
+                                        .clone();
+
+                                    std::fs::rename(dir, input.clone()).unwrap();
                                     app.update_dirs();
                                     app.last_command = None;
                                 }
