@@ -1,6 +1,7 @@
 use crate::ui::{
     pane::{get_du, get_pwd},
-    stateful_list::StatefulList, run_app::Command,
+    run_app::Command,
+    stateful_list::StatefulList,
 };
 use ratatui::{
     buffer::Buffer,

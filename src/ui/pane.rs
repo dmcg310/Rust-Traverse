@@ -130,7 +130,7 @@ pub fn get_pwd() -> String {
         .expect("failed to execute process");
 
     let output_str = String::from_utf8_lossy(&output.stdout);
-    format!(" {}\n", output_str)
+    format!("{}", output_str)
 }
 
 pub fn get_du() -> String {

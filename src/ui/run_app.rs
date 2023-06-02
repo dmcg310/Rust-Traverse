@@ -2,7 +2,6 @@ use super::render::render;
 use crate::app::App;
 use crate::ui::pane::get_pwd;
 use anyhow::Result;
-use crossterm::event::KeyModifiers;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::backend::Backend;
 use ratatui::terminal::Terminal;
@@ -56,28 +55,47 @@ pub fn run_app<B: Backend>(
                                 app.dirs.previous();
                             }
                         }
-                        KeyCode::Char('f') => {
-                            if (input_active == false
-                                && app.last_command != Some(Command::CreateFile))
-                                || (input_active == true && app.last_command.is_none())
-                            {
-                                input_active = true;
-                                app.show_popup = true;
-                                app.last_command = Some(Command::CreateFile);
-                            } else {
-                                input.push('f');
+                        KeyCode::Char('n') => {
+                            if app.files.state.selected().is_some() {
+                                if (input_active == false
+                                    && app.last_command != Some(Command::CreateFile))
+                                    || (input_active == true && app.last_command.is_none())
+                                {
+                                    input_active = true;
+                                    app.show_popup = true;
+                                    app.last_command = Some(Command::CreateFile);
+                                } else {
+                                    input.push('n');
+                                }
+                            } else if app.dirs.state.selected().is_some() {
+                                if (input_active == false
+                                    && app.last_command != Some(Command::CreateDir))
+                                    || (input_active == true && app.last_command.is_none())
+                                {
+                                    input_active = true;
+                                    app.show_popup = true;
+                                    app.last_command = Some(Command::CreateDir);
+                                } else {
+                                    input.push('n');
+                                }
                             }
                         }
-                        KeyCode::Char('n') => {
-                            if (input_active == false
-                                && app.last_command != Some(Command::CreateDir))
-                                || (input_active == true && app.last_command.is_none())
-                            {
-                                input_active = true;
-                                app.show_popup = true;
-                                app.last_command = Some(Command::CreateDir);
-                            } else {
-                                input.push('n');
+                        KeyCode::Char('d')
+                            if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
+                        {
+                            if app.files.state.selected().is_some() {
+                                let file = app.files.items[app.files.state.selected().unwrap()]
+                                    .0
+                                    .clone();
+
+                                std::fs::remove_file(file).unwrap();
+                                app.update_files();
+                            } else if app.dirs.state.selected().is_some() {
+                                let dir =
+                                    app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
+
+                                std::fs::remove_dir_all(dir).unwrap();
+                                app.update_dirs();
                             }
                         }
                         KeyCode::Char('q') | KeyCode::Esc => {
