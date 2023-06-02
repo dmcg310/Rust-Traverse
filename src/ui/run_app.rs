@@ -8,6 +8,12 @@ use ratatui::backend::Backend;
 use ratatui::terminal::Terminal;
 use std::time::Duration;
 
+#[derive(PartialEq)]
+pub enum Command {
+    CreateFile,
+    CreateDir,
+}
+
 pub fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
     mut app: App,
@@ -50,28 +56,28 @@ pub fn run_app<B: Backend>(
                                 app.dirs.previous();
                             }
                         }
-                        KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                            if input_active {
-                                App::create_file(&input);
-                                app.update_files();
-                                input.clear();
-                                app.show_popup = false;
-                                input_active = false;
-                            } else {
-                                app.show_popup = true;
+                        KeyCode::Char('f') => {
+                            if (input_active == false
+                                && app.last_command != Some(Command::CreateFile))
+                                || (input_active == true && app.last_command.is_none())
+                            {
                                 input_active = true;
+                                app.show_popup = true;
+                                app.last_command = Some(Command::CreateFile);
+                            } else {
+                                input.push('f');
                             }
                         }
-                        KeyCode::Char('n') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                            if input_active {
-                                App::create_dir(&input);
-                                app.update_dirs();
-                                input.clear();
-                                app.show_popup = false;
-                                input_active = false;
-                            } else {
-                                app.show_popup = true;
+                        KeyCode::Char('n') => {
+                            if (input_active == false
+                                && app.last_command != Some(Command::CreateDir))
+                                || (input_active == true && app.last_command.is_none())
+                            {
                                 input_active = true;
+                                app.show_popup = true;
+                                app.last_command = Some(Command::CreateDir);
+                            } else {
+                                input.push('n');
                             }
                         }
                         KeyCode::Char('q') | KeyCode::Esc => {
@@ -88,36 +94,53 @@ pub fn run_app<B: Backend>(
                             }
                         }
                         KeyCode::Enter => {
-                            if app.dirs.state.selected().is_some() {
-                                if app.dirs.items[app.dirs.state.selected().unwrap()].0 == "../" {
-                                    let mut path = std::env::current_dir().unwrap();
-                                    path.pop();
+                            if input_active {
+                                if app.last_command == Some(Command::CreateFile) {
+                                    App::create_file(&input);
+                                    app.update_files();
+                                    app.last_command = None;
+                                } else if app.last_command == Some(Command::CreateDir) {
+                                    App::create_dir(&input);
+                                    app.update_dirs();
+                                    app.last_command = None;
+                                }
+                                input.clear();
+                                app.show_popup = false;
+                                input_active = false;
+                            } else {
+                                if app.dirs.state.selected().is_some() {
+                                    if app.dirs.items[app.dirs.state.selected().unwrap()].0 == "../"
+                                    {
+                                        let mut path = std::env::current_dir().unwrap();
+                                        path.pop();
 
-                                    std::env::set_current_dir(path).unwrap();
-                                    app.cur_dir = get_pwd();
-                                } else {
-                                    let dir = app.dirs.items[app.dirs.state.selected().unwrap()]
+                                        std::env::set_current_dir(path).unwrap();
+                                        app.cur_dir = get_pwd();
+                                    } else {
+                                        let dir = app.dirs.items
+                                            [app.dirs.state.selected().unwrap()]
                                         .0
                                         .clone();
 
-                                    std::env::set_current_dir(dir).unwrap();
-                                    app.cur_dir = get_pwd();
-                                }
-                                app.update_files();
-                                app.update_dirs();
+                                        std::env::set_current_dir(dir).unwrap();
+                                        app.cur_dir = get_pwd();
+                                    }
+                                    app.update_files();
+                                    app.update_dirs();
 
-                                if let Some(selected) = app.files.state.selected() {
-                                    if selected >= app.files.items.len() {
-                                        if !app.files.items.is_empty() {
-                                            app.files.state.select(Some(
-                                                app.files.items.len().saturating_sub(1),
-                                            ));
-                                        } else {
-                                            app.files.state.select(None);
+                                    if let Some(selected) = app.files.state.selected() {
+                                        if selected >= app.files.items.len() {
+                                            if !app.files.items.is_empty() {
+                                                app.files.state.select(Some(
+                                                    app.files.items.len().saturating_sub(1),
+                                                ));
+                                            } else {
+                                                app.files.state.select(None);
+                                            }
                                         }
                                     }
+                                    app.dirs.state.select(Some(0));
                                 }
-                                app.dirs.state.select(Some(0));
                             }
                         }
                         KeyCode::Backspace => {

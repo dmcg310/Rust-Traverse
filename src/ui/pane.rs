@@ -143,7 +143,7 @@ pub fn get_du() -> String {
         let used = total - free;
 
         return format!(
-            "{} used / {} total / {} free",
+            "{} used / {} total / {} free ",
             convert_bytes(used),
             convert_bytes(total),
             convert_bytes(free),

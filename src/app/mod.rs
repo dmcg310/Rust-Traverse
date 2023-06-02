@@ -1,6 +1,6 @@
 use crate::ui::{
     pane::{get_du, get_pwd},
-    stateful_list::StatefulList,
+    stateful_list::StatefulList, run_app::Command,
 };
 use ratatui::{
     buffer::Buffer,
@@ -17,6 +17,7 @@ pub struct App {
     pub cur_dir: String,
     pub show_popup: bool,
     pub selected_item_state: ListState,
+    pub last_command: Option<Command>,
 }
 
 impl App {
@@ -49,6 +50,7 @@ impl App {
             cur_dir,
             show_popup: false,
             selected_item_state: ListState::default(),
+            last_command: None,
         }
     }
 

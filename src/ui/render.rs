@@ -21,7 +21,7 @@ use ratatui::{
 use std::io;
 use std::time::Duration;
 
-use super::pane::{get_du, get_pwd};
+use super::pane::get_pwd;
 use super::run_app::run_app;
 
 pub fn init() -> Result<()> {
@@ -184,13 +184,12 @@ fn render_details<B: Backend>(
         vec![ListItem::new(Spans::from("No file selected"))]
     };
 
-    let items = List::new(selected_item)
-        .block(Block::default().borders(Borders::ALL).title("Details"))
-        .highlight_style(
-            Style::default()
-                .fg(Color::Blue)
-                .add_modifier(Modifier::BOLD),
-        );
+    let items = List::new(selected_item).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Details")
+            .title_alignment(Alignment::Left),
+    );
     f.render_widget(items, details_chunks[0]);
 
     let pwd_paragraph = Paragraph::new(cur_dir)
@@ -198,15 +197,21 @@ fn render_details<B: Backend>(
         .block(
             Block::default()
                 .borders(Borders::ALL)
+                .title_alignment(Alignment::Center)
                 .title("Current Directory"),
         )
-        .alignment(Alignment::Left);
+        .alignment(Alignment::Center);
     f.render_widget(pwd_paragraph, details_chunks[1]);
 
     let du_paragraph = Paragraph::new(cur_du)
         .style(Style::default())
-        .block(Block::default().borders(Borders::ALL).title("Disk Usage"))
-        .alignment(Alignment::Left);
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Disk Usage")
+                .title_alignment(Alignment::Right),
+        )
+        .alignment(Alignment::Right);
     f.render_widget(du_paragraph, details_chunks[2]);
 }
 
@@ -217,13 +222,19 @@ fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: 
             .borders(Borders::ALL)
             .title_alignment(Alignment::Center);
 
-        let area = centered_rect(30, 7, size);
+        let area = centered_rect(25, 10, size);
         f.render_widget(Clear, area);
         f.render_widget(block, area);
 
         let input_box = Paragraph::new(input.clone())
             .style(Style::default())
-            .block(Block::default().borders(Borders::ALL))
+            .block(Block::default().title("Name").borders(Borders::ALL))
+            .style(
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .bg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
+            )
             .alignment(Alignment::Left);
         f.render_widget(input_box, area);
     }
