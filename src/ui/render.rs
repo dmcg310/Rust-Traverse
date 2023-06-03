@@ -59,35 +59,32 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
 
     let size = f.size();
 
-    let top_chunks = top_chunks(f);
-    let bottom_chunks = bottom_chunks(f);
-
-    render_files(f, app, &top_chunks);
-    render_dirs(f, app, &top_chunks);
-    render_details(f, app, &bottom_chunks, cur_dir, cur_du);
-    render_input(f, app, size, input);
-
-    if app.files.state.selected().is_some() {
-        render_files(f, app, &top_chunks)
-    } else if app.dirs.state.selected().is_some() {
-        render_dirs(f, app, &top_chunks)
-    }
-}
-
-fn top_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
-    let size = f.size();
-
     let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(94), Constraint::Percentage(6)].as_ref())
-        .split(size);
-
-    let top_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(size);
+
+    let left_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(90), Constraint::Percentage(10)])
         .split(chunks[0]);
 
-    (top_chunks).to_vec()
+    let right_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(45),
+            Constraint::Percentage(45),
+            Constraint::Percentage(10),
+        ])
+        .split(chunks[1]);
+
+    let bottom_chunks = bottom_chunks(f);
+
+    render_contents(f, app, &left_chunks);
+    render_files(f, app, &[right_chunks[0]]);
+    render_dirs(f, app, &[right_chunks[1]]);
+    render_details(f, app, &bottom_chunks, cur_dir, cur_du);
+    render_input(f, app, size, input);
 }
 
 fn bottom_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
@@ -110,12 +107,12 @@ fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
     let files_block = Block::default().borders(Borders::ALL).title("Files");
     f.render_widget(files_block, chunks[0]);
 
-    let files: Vec<ListItem> = app
+    let files = app
         .files
         .items
         .iter()
         .map(|i| ListItem::new(i.0.clone()))
-        .collect();
+        .collect::<Vec<ListItem>>();
 
     let items = List::new(files)
         .block(Block::default().borders(Borders::ALL).title("Files"))
@@ -125,26 +122,60 @@ fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
                 .fg(Color::Blue)
                 .add_modifier(Modifier::BOLD),
         );
+
     f.render_stateful_widget(items, chunks[0], &mut app.files.state);
+
+    if app.files.state.selected().is_some() {
+        let files_block = Block::default()
+            .borders(Borders::ALL)
+            .title("Files")
+            .border_style(Style::default().fg(Color::LightGreen));
+        f.render_widget(files_block, chunks[0]);
+    } else {
+        let files_block = Block::default()
+            .borders(Borders::ALL)
+            .title("Files")
+            .border_style(Style::default().fg(Color::White));
+        f.render_widget(files_block, chunks[0]);
+    }
 }
 
 fn render_dirs<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
     app.cur_dir = get_pwd();
     let dirs_block = Block::default().borders(Borders::ALL).title("Directories");
-    f.render_widget(dirs_block, chunks[1]);
+    f.render_widget(dirs_block, chunks[0]);
 
-    let dirs: Vec<ListItem> = app
+    let dirs = app
         .dirs
         .items
         .iter()
         .map(|i| ListItem::new(i.0.clone()))
-        .collect();
+        .collect::<Vec<ListItem>>();
 
     let items = List::new(dirs)
         .block(Block::default().borders(Borders::ALL).title("Directories"))
         .highlight_symbol("> ")
-        .highlight_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
-    f.render_stateful_widget(items, chunks[1], &mut app.dirs.state);
+        .highlight_style(
+            Style::default()
+                .fg(Color::Blue)
+                .add_modifier(Modifier::BOLD),
+        );
+
+    f.render_stateful_widget(items, chunks[0], &mut app.dirs.state);
+
+    if app.dirs.state.selected().is_some() {
+        let dirs_block = Block::default()
+            .borders(Borders::ALL)
+            .title("Directories")
+            .border_style(Style::default().fg(Color::LightGreen));
+        f.render_widget(dirs_block, chunks[0]);
+    } else {
+        let dirs_block = Block::default()
+            .borders(Borders::ALL)
+            .title("Directories")
+            .border_style(Style::default().fg(Color::White));
+        f.render_widget(dirs_block, chunks[0]);
+    }
 }
 
 fn render_details<B: Backend>(
@@ -213,6 +244,13 @@ fn render_details<B: Backend>(
         )
         .alignment(Alignment::Right);
     f.render_widget(du_paragraph, details_chunks[2]);
+}
+
+fn render_contents<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
+    let contents_block = Block::default().borders(Borders::ALL).title("Contents");
+    f.render_widget(contents_block, chunks[0]);
+
+    // TODO
 }
 
 fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &mut String) {
