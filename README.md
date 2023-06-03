@@ -38,19 +38,19 @@ Run `trav` in your terminal.
 
 #### Navigation
 
-- `ESC`: Quit the application
-- `1`: Select the Files pane
-- `2`: Select the Directories pane
-- `j`: Select the next item in the current pane
-- `k`: Select the previous item in the current pane
+- `ESC`: Quit the application.
+- `1`: Select the Files pane.
+- `2`: Select the Directories pane.
+- `j`: Select the next item in the current pane.
+- `k`: Select the previous item in the current pane.
 
 #### File and Directory Operations
 
-- `n`: Create a new file or directory, depending on the current pane
-- `m`: Move the selected file or directory
-- `CTRL + d`: Delete the selected file or directory
-- `r`: Rename the selected file or directory
-- `f`: Navigate to a directory using a relative or absolute path
+- `n`: Create a new file or directory, depending on the current pane.
+- `m`: Move the selected file or directory.
+- `CTRL + d`: Delete the selected file or directory.
+- `r`: Rename the selected file or directory.
+- `f`: Navigate to a directory using a relative or absolute path.
 
 ## Configuration
 
