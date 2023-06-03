@@ -5,6 +5,7 @@ use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::backend::Backend;
 use ratatui::terminal::Terminal;
+use std::path::PathBuf;
 use std::time::Duration;
 
 #[derive(PartialEq)]
@@ -13,6 +14,7 @@ pub enum Command {
     CreateDir,
     RenameFile,
     RenameDir,
+    ShowNav,
 }
 
 pub fn run_app<B: Backend>(
@@ -36,14 +38,22 @@ pub fn run_app<B: Backend>(
                 if key.kind == KeyEventKind::Press {
                     match key.code {
                         KeyCode::Char('1') => {
-                            app.files.state.select(Some(0));
-                            app.dirs.state.select(None);
-                            app.content.state.select(None);
+                            if input_active {
+                                input.push('1');
+                            } else {
+                                app.files.state.select(Some(0));
+                                app.dirs.state.select(None);
+                                app.content.state.select(None);
+                            }
                         }
                         KeyCode::Char('2') => {
-                            app.dirs.state.select(Some(0));
-                            app.files.state.select(None);
-                            app.content.state.select(None);
+                            if input_active {
+                                input.push('2');
+                            } else {
+                                app.dirs.state.select(Some(0));
+                                app.files.state.select(None);
+                                app.content.state.select(None);
+                            }
                         }
                         KeyCode::Char('j') | KeyCode::Down => {
                             if app.files.state.selected().is_some() {
@@ -52,6 +62,8 @@ pub fn run_app<B: Backend>(
                                 app.dirs.next();
                             } else if app.content.state.selected().is_some() {
                                 app.content.next();
+                            } else if input_active {
+                                input.push('j');
                             }
                         }
                         KeyCode::Char('k') | KeyCode::Up => {
@@ -59,6 +71,8 @@ pub fn run_app<B: Backend>(
                                 app.files.previous();
                             } else if app.dirs.state.selected().is_some() {
                                 app.dirs.previous();
+                            } else if input_active {
+                                input.push('k');
                             }
                         }
                         KeyCode::Char('n') => {
@@ -84,6 +98,17 @@ pub fn run_app<B: Backend>(
                                 } else {
                                     input.push('n');
                                 }
+                            } else {
+                                input.push('n');
+                            }
+                        }
+                        KeyCode::Char('f') => {
+                            if !input_active {
+                                app.show_nav = true;
+                                input_active = true;
+                                app.last_command = Some(Command::ShowNav);
+                            } else {
+                                input.push('f');
                             }
                         }
                         KeyCode::Char('d')
@@ -133,12 +158,15 @@ pub fn run_app<B: Backend>(
                                 } else {
                                     input.push('r');
                                 }
+                            } else {
+                                input.push('r');
                             }
                         }
-                        KeyCode::Char('q') | KeyCode::Esc => {
+                        KeyCode::Esc => {
                             if input_active {
                                 input_active = false;
                                 app.show_popup = false;
+                                app.show_nav = false;
                             } else {
                                 return Ok(());
                             }
@@ -174,7 +202,31 @@ pub fn run_app<B: Backend>(
                                     std::fs::rename(dir, input.clone()).unwrap();
                                     app.update_dirs();
                                     app.last_command = None;
+                                } else if app.last_command == Some(Command::ShowNav) {
+                                    let path = Some(PathBuf::from(input.clone()));
+
+                                    if path.is_some() {
+                                        std::env::set_current_dir(path.unwrap()).unwrap();
+
+                                        app.cur_dir = std::env::current_dir()
+                                            .unwrap()
+                                            .to_str()
+                                            .unwrap()
+                                            .to_string();
+
+                                        app.update_files();
+                                        app.update_dirs();
+
+                                        app.show_popup = false;
+                                        app.show_nav = false;
+                                        app.last_command = None;
+                                    } else {
+                                        app.show_popup = false;
+                                        app.show_nav = false;
+                                        app.last_command = None;
+                                    }
                                 }
+
                                 input.clear();
                                 app.show_popup = false;
                                 input_active = false;

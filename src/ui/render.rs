@@ -88,6 +88,7 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
     render_dirs(f, app, &[right_chunks[1]]);
     render_details(f, app, &bottom_chunks, cur_dir, cur_du);
     render_input(f, app, size, input);
+    render_navigator(f, app, size, input);
 }
 
 fn bottom_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
@@ -125,6 +126,30 @@ fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
                 .fg(Color::Blue)
                 .add_modifier(Modifier::BOLD),
         );
+
+    if app.files.items.len() == 0 {
+        let empty = vec![ListItem::new("No files in this directory")];
+        let empty_list = List::new(empty)
+            .block(Block::default().borders(Borders::ALL).title("Files"))
+            .highlight_symbol("> ")
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Blue)
+                    .add_modifier(Modifier::BOLD),
+            );
+        f.render_stateful_widget(empty_list, chunks[0], &mut app.files.state);
+        return;
+    }
+    // else {
+    //     // add to config file to hide hidden files
+    //     let temp = app.files.items.clone();
+    //     for file in temp {
+    //         if file.0.starts_with(".") {
+    //             let index = app.files.items.iter().position(|x| x.0 == file.0).unwrap();
+    //             app.files.items.remove(index);
+    //         }
+    //     }
+    // }
 
     f.render_stateful_widget(items, chunks[0], &mut app.files.state);
 
@@ -201,7 +226,10 @@ fn render_details<B: Backend>(
         .split(chunks[0]);
 
     let selected_file = match app.files.state.selected() {
-        Some(i) => &app.files.items[i].0,
+        Some(i) => match app.files.items.get(i) {
+            Some(item) => &item.0,
+            None => "",
+        },
         None => "",
     };
 
@@ -254,21 +282,28 @@ fn render_contents<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect])
     f.render_widget(contents_block, chunks[0]);
 
     let selected_file = match app.files.state.selected() {
-        Some(i) => &app.files.items[i].0,
+        Some(i) => match app.files.items.get(i) {
+            Some(item) => &item.0,
+            None => "",
+        },
         None => "",
     };
 
     let mut content = String::new();
     let mut total_line_count = 0;
+
     if !selected_file.is_empty() {
         let file = File::open(selected_file).unwrap();
         let mut buf_reader = BufReader::new(file);
         let mut line = String::new();
+
         while buf_reader.read_line(&mut line).unwrap() > 0 {
             total_line_count += 1;
+
             if total_line_count <= 30 {
                 content.push_str(&line);
             }
+
             line.clear();
         }
     }
@@ -307,7 +342,30 @@ fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: 
             .style(
                 Style::default()
                     .fg(Color::LightBlue)
-                    .bg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .alignment(Alignment::Left);
+        f.render_widget(input_box, area);
+    }
+}
+
+fn render_navigator<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &mut String) {
+    if app.show_nav {
+        let block = Block::default()
+            .title("Navigator")
+            .borders(Borders::ALL)
+            .title_alignment(Alignment::Center);
+
+        let area = centered_rect(25, 10, size);
+        f.render_widget(Clear, area);
+        f.render_widget(block, area);
+
+        let input_box = Paragraph::new(input.clone())
+            .style(Style::default())
+            .block(Block::default().title("Finder").borders(Borders::ALL))
+            .style(
+                Style::default()
+                    .fg(Color::LightBlue)
                     .add_modifier(Modifier::BOLD),
             )
             .alignment(Alignment::Left);

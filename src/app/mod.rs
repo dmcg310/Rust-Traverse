@@ -18,6 +18,7 @@ pub struct App {
     pub cur_du: String,
     pub cur_dir: String,
     pub show_popup: bool,
+    pub show_nav: bool,
     pub selected_item_state: ListState,
     pub last_command: Option<Command>,
 }
@@ -52,6 +53,7 @@ impl App {
             cur_dir,
             content: StatefulList::with_items(vec![]),
             show_popup: false,
+            show_nav: false,
             selected_item_state: ListState::default(),
             last_command: None,
         }
