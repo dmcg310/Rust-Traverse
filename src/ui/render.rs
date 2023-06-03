@@ -18,7 +18,10 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
     Frame,
 };
-use std::io;
+
+use std::fs::File;
+use std::io::BufRead;
+use std::io::{self, BufReader};
 use std::time::Duration;
 
 use super::pane::get_pwd;
@@ -250,7 +253,41 @@ fn render_contents<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect])
     let contents_block = Block::default().borders(Borders::ALL).title("Contents");
     f.render_widget(contents_block, chunks[0]);
 
-    // TODO
+    let selected_file = match app.files.state.selected() {
+        Some(i) => &app.files.items[i].0,
+        None => "",
+    };
+
+    let mut content = String::new();
+    let mut total_line_count = 0;
+    if !selected_file.is_empty() {
+        let file = File::open(selected_file).unwrap();
+        let mut buf_reader = BufReader::new(file);
+        let mut line = String::new();
+        while buf_reader.read_line(&mut line).unwrap() > 0 {
+            total_line_count += 1;
+            if total_line_count <= 30 {
+                content.push_str(&line);
+            }
+            line.clear();
+        }
+    }
+
+    if total_line_count > 30 {
+        content.push_str(&format!("\n... {} more lines", total_line_count - 30));
+    }
+
+    let items = List::new(vec![ListItem::new(content)])
+        .block(Block::default().borders(Borders::ALL).title("Contents"));
+
+    f.render_stateful_widget(items, chunks[0], &mut app.files.state);
+
+    if selected_file.is_empty() {
+        let placeholder = Paragraph::new("No file selected")
+            .style(Style::default())
+            .block(Block::default().borders(Borders::ALL).title("Contents"));
+        f.render_widget(placeholder, chunks[0]);
+    }
 }
 
 fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &mut String) {

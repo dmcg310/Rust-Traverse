@@ -14,6 +14,7 @@ use std::fs::{self, read_dir, File};
 pub struct App {
     pub files: StatefulList<(String, String)>,
     pub dirs: StatefulList<(String, String)>,
+    pub content: StatefulList<String>,
     pub cur_du: String,
     pub cur_dir: String,
     pub show_popup: bool,
@@ -49,6 +50,7 @@ impl App {
             dirs,
             cur_du,
             cur_dir,
+            content: StatefulList::with_items(vec![]),
             show_popup: false,
             selected_item_state: ListState::default(),
             last_command: None,

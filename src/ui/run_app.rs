@@ -38,16 +38,20 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char('1') => {
                             app.files.state.select(Some(0));
                             app.dirs.state.select(None);
+                            app.content.state.select(None);
                         }
                         KeyCode::Char('2') => {
                             app.dirs.state.select(Some(0));
                             app.files.state.select(None);
+                            app.content.state.select(None);
                         }
                         KeyCode::Char('j') | KeyCode::Down => {
                             if app.files.state.selected().is_some() {
                                 app.files.next();
                             } else if app.dirs.state.selected().is_some() {
                                 app.dirs.next();
+                            } else if app.content.state.selected().is_some() {
+                                app.content.next();
                             }
                         }
                         KeyCode::Char('k') | KeyCode::Up => {
