@@ -89,6 +89,7 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
     render_details(f, app, &bottom_chunks, cur_dir, cur_du);
     render_input(f, app, size, input);
     render_navigator(f, app, size, input);
+    render_fzf(f, app, size, input);
 }
 
 fn bottom_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
@@ -370,5 +371,44 @@ fn render_navigator<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, inp
             )
             .alignment(Alignment::Left);
         f.render_widget(input_box, area);
+    }
+}
+
+fn render_fzf<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &mut String) {
+    if app.show_fzf {
+        let block = Block::default()
+            .title("FZF")
+            .borders(Borders::ALL)
+            .title_alignment(Alignment::Center);
+
+        let area = centered_rect(f.size().width / 2, f.size().height / 2, size);
+        f.render_widget(Clear, area);
+        f.render_widget(block, area);
+
+        let input_box = Paragraph::new(input.clone())
+            .style(Style::default())
+            .block(Block::default().title("lost?").borders(Borders::ALL))
+            .style(
+                Style::default()
+                    .fg(Color::LightBlue)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .alignment(Alignment::Left);
+        f.render_widget(input_box, area);
+
+        let results_text = app.fzf_results.join("\n");
+        let results_box = Paragraph::new(results_text)
+            .style(Style::default())
+            .block(Block::default().title("Results").borders(Borders::ALL))
+            .style(
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .alignment(Alignment::Left);
+
+        let results_area = Rect::new(area.x + area.width / 2, area.y, area.width / 2, area.height);
+
+        f.render_widget(results_box, results_area);
     }
 }

@@ -19,6 +19,8 @@ pub struct App {
     pub cur_dir: String,
     pub show_popup: bool,
     pub show_nav: bool,
+    pub show_fzf: bool,
+    pub fzf_results: Vec<String>,
     pub selected_item_state: ListState,
     pub last_command: Option<Command>,
 }
@@ -54,6 +56,8 @@ impl App {
             content: StatefulList::with_items(vec![]),
             show_popup: false,
             show_nav: false,
+            show_fzf: false,
+            fzf_results: vec![],
             selected_item_state: ListState::default(),
             last_command: None,
         }

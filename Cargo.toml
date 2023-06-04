@@ -8,5 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.71"
 crossterm = "0.26"
+distance = "0.4.0"
 ratatui = "0.20"
 sysinfo = "0.29.0"
+walkdir = "2.3.3"

@@ -3,10 +3,12 @@ use crate::app::App;
 use crate::ui::pane::get_pwd;
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use distance::levenshtein;
 use ratatui::backend::Backend;
 use ratatui::terminal::Terminal;
 use std::path::PathBuf;
 use std::time::Duration;
+use walkdir::WalkDir;
 
 #[derive(PartialEq)]
 pub enum Command {
@@ -15,6 +17,7 @@ pub enum Command {
     RenameFile,
     RenameDir,
     ShowNav,
+    ShowFzf,
 }
 
 pub fn run_app<B: Backend>(
@@ -55,6 +58,9 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char('f') => {
                             handle_nav(&mut app, &mut input, &mut input_active, 'f');
                         }
+                        KeyCode::Char('w') => {
+                            handle_fzf(&mut app, &mut input, &mut input_active);
+                        }
                         KeyCode::Char('d')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
@@ -75,6 +81,10 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char(c) => {
                             if input_active {
                                 input.push(c);
+
+                                if app.last_command == Some(Command::ShowFzf) {
+                                    handle_fzf(&mut app, &mut input, &mut input_active);
+                                }
                             }
                         }
                         KeyCode::Enter => {
@@ -261,6 +271,11 @@ fn handle_submit(app: &mut App, input: &mut String, input_active: &mut bool) {
                 app.show_popup = false;
                 app.show_nav = false;
                 app.last_command = None;
+            } else if app.last_command == Some(Command::ShowFzf) {
+                // app.show_popup = false;
+                // app.update_dirs();
+                // app.update_files();
+                // app.last_command = None;
             } else {
                 app.show_popup = false;
                 app.show_nav = false;
@@ -302,4 +317,42 @@ fn handle_submit(app: &mut App, input: &mut String, input_active: &mut bool) {
             app.dirs.state.select(Some(0));
         }
     }
+}
+
+fn fzf(app: &mut App, input: &mut String, input_active: &mut bool) -> Vec<PathBuf> {
+    let query = input.clone();
+    let dir = app.cur_dir.clone();
+    let dir = dir.trim_end_matches('\n');
+
+    let mut result = Vec::new();
+
+    for entry in WalkDir::new(dir) {
+        let entry = entry.unwrap();
+
+        if entry.file_type().is_file() {
+            let filename = entry.file_name().to_str().unwrap().to_string();
+            let dist = levenshtein(&query, &filename);
+
+            if dist < 5 {
+                result.push(entry.path().to_path_buf());
+            }
+        }
+    }
+
+    result
+}
+
+fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
+    app.show_fzf = true;
+    app.show_popup = true;
+    app.last_command = Some(Command::ShowFzf);
+
+    *input_active = true;
+
+    let result = fzf(app, input, input_active);
+
+    app.fzf_results = result
+        .into_iter()
+        .map(|x| x.display().to_string())
+        .collect();
 }
