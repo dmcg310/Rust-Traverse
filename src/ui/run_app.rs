@@ -38,129 +38,30 @@ pub fn run_app<B: Backend>(
                 if key.kind == KeyEventKind::Press {
                     match key.code {
                         KeyCode::Char('1') => {
-                            if input_active {
-                                input.push('1');
-                            } else {
-                                app.files.state.select(Some(0));
-                                app.dirs.state.select(None);
-                                app.content.state.select(None);
-                            }
+                            handle_pane_switching(&mut app, &mut input, input_active, 1);
                         }
                         KeyCode::Char('2') => {
-                            if input_active {
-                                input.push('2');
-                            } else {
-                                app.dirs.state.select(Some(0));
-                                app.files.state.select(None);
-                                app.content.state.select(None);
-                            }
+                            handle_pane_switching(&mut app, &mut input, input_active, 2);
                         }
                         KeyCode::Char('j') | KeyCode::Down => {
-                            if app.files.state.selected().is_some() {
-                                app.files.next();
-                            } else if app.dirs.state.selected().is_some() {
-                                app.dirs.next();
-                            } else if app.content.state.selected().is_some() {
-                                app.content.next();
-                            } else if input_active {
-                                input.push('j');
-                            }
+                            handle_movement(&mut app, &mut input, input_active, 'j');
                         }
                         KeyCode::Char('k') | KeyCode::Up => {
-                            if app.files.state.selected().is_some() {
-                                app.files.previous();
-                            } else if app.dirs.state.selected().is_some() {
-                                app.dirs.previous();
-                            } else if input_active {
-                                input.push('k');
-                            }
+                            handle_movement(&mut app, &mut input, input_active, 'k');
                         }
                         KeyCode::Char('n') => {
-                            if app.files.state.selected().is_some() {
-                                if (input_active == false
-                                    && app.last_command != Some(Command::CreateFile))
-                                    || (input_active == true && app.last_command.is_none())
-                                {
-                                    input_active = true;
-                                    app.show_popup = true;
-                                    app.last_command = Some(Command::CreateFile);
-                                } else {
-                                    input.push('n');
-                                }
-                            } else if app.dirs.state.selected().is_some() {
-                                if (input_active == false
-                                    && app.last_command != Some(Command::CreateDir))
-                                    || (input_active == true && app.last_command.is_none())
-                                {
-                                    input_active = true;
-                                    app.show_popup = true;
-                                    app.last_command = Some(Command::CreateDir);
-                                } else {
-                                    input.push('n');
-                                }
-                            } else {
-                                input.push('n');
-                            }
+                            handle_new_file(&mut app, &mut input, &mut input_active, 'n');
                         }
                         KeyCode::Char('f') => {
-                            if !input_active {
-                                app.show_nav = true;
-                                input_active = true;
-                                app.last_command = Some(Command::ShowNav);
-                            } else {
-                                input.push('f');
-                            }
+                            handle_nav(&mut app, &mut input, &mut input_active, 'f');
                         }
                         KeyCode::Char('d')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
-                            if app.files.state.selected().is_some() {
-                                let file = app.files.items[app.files.state.selected().unwrap()]
-                                    .0
-                                    .clone();
-
-                                std::fs::remove_file(file).unwrap();
-                                app.update_files();
-                            } else if app.dirs.state.selected().is_some() {
-                                let dir =
-                                    app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
-
-                                std::fs::remove_dir_all(dir).unwrap();
-                                app.update_dirs();
-                            }
+                            handle_delete(&mut app);
                         }
                         KeyCode::Char('r') => {
-                            if app.files.state.selected().is_some() {
-                                if (input_active == false
-                                    && app.last_command != Some(Command::RenameFile))
-                                    || (input_active == true && app.last_command.is_none())
-                                {
-                                    input_active = true;
-                                    app.show_popup = true;
-                                    app.last_command = Some(Command::RenameFile);
-                                    input = app.files.items[app.files.state.selected().unwrap()]
-                                        .0
-                                        .clone();
-                                } else {
-                                    input.push('r');
-                                }
-                            } else if app.dirs.state.selected().is_some() {
-                                if (input_active == false
-                                    && app.last_command != Some(Command::RenameDir))
-                                    || (input_active == true && app.last_command.is_none())
-                                {
-                                    input_active = true;
-                                    app.show_popup = true;
-                                    app.last_command = Some(Command::RenameDir);
-                                    input = app.dirs.items[app.dirs.state.selected().unwrap()]
-                                        .0
-                                        .clone();
-                                } else {
-                                    input.push('r');
-                                }
-                            } else {
-                                input.push('r');
-                            }
+                            handle_rename(&mut app, &mut input, &mut input_active);
                         }
                         KeyCode::Esc => {
                             if input_active {
@@ -177,94 +78,7 @@ pub fn run_app<B: Backend>(
                             }
                         }
                         KeyCode::Enter => {
-                            if input_active {
-                                if app.last_command == Some(Command::CreateFile) {
-                                    App::create_file(&input);
-                                    app.update_files();
-                                    app.last_command = None;
-                                } else if app.last_command == Some(Command::CreateDir) {
-                                    App::create_dir(&input);
-                                    app.update_dirs();
-                                    app.last_command = None;
-                                } else if app.last_command == Some(Command::RenameFile) {
-                                    let file = app.files.items[app.files.state.selected().unwrap()]
-                                        .0
-                                        .clone();
-
-                                    std::fs::rename(file, input.clone()).unwrap();
-                                    app.update_files();
-                                    app.last_command = None;
-                                } else if app.last_command == Some(Command::RenameDir) {
-                                    let dir = app.dirs.items[app.dirs.state.selected().unwrap()]
-                                        .0
-                                        .clone();
-
-                                    std::fs::rename(dir, input.clone()).unwrap();
-                                    app.update_dirs();
-                                    app.last_command = None;
-                                } else if app.last_command == Some(Command::ShowNav) {
-                                    let path = Some(PathBuf::from(input.clone()));
-
-                                    if path.is_some() {
-                                        std::env::set_current_dir(path.unwrap()).unwrap();
-
-                                        app.cur_dir = std::env::current_dir()
-                                            .unwrap()
-                                            .to_str()
-                                            .unwrap()
-                                            .to_string();
-
-                                        app.update_files();
-                                        app.update_dirs();
-
-                                        app.show_popup = false;
-                                        app.show_nav = false;
-                                        app.last_command = None;
-                                    } else {
-                                        app.show_popup = false;
-                                        app.show_nav = false;
-                                        app.last_command = None;
-                                    }
-                                }
-
-                                input.clear();
-                                app.show_popup = false;
-                                input_active = false;
-                            } else {
-                                if app.dirs.state.selected().is_some() {
-                                    if app.dirs.items[app.dirs.state.selected().unwrap()].0 == "../"
-                                    {
-                                        let mut path = std::env::current_dir().unwrap();
-                                        path.pop();
-
-                                        std::env::set_current_dir(path).unwrap();
-                                        app.cur_dir = get_pwd();
-                                    } else {
-                                        let dir = app.dirs.items
-                                            [app.dirs.state.selected().unwrap()]
-                                        .0
-                                        .clone();
-
-                                        std::env::set_current_dir(dir).unwrap();
-                                        app.cur_dir = get_pwd();
-                                    }
-                                    app.update_files();
-                                    app.update_dirs();
-
-                                    if let Some(selected) = app.files.state.selected() {
-                                        if selected >= app.files.items.len() {
-                                            if !app.files.items.is_empty() {
-                                                app.files.state.select(Some(
-                                                    app.files.items.len().saturating_sub(1),
-                                                ));
-                                            } else {
-                                                app.files.state.select(None);
-                                            }
-                                        }
-                                    }
-                                    app.dirs.state.select(Some(0));
-                                }
-                            }
+                            handle_submit(&mut app, &mut input, &mut input_active);
                         }
                         KeyCode::Backspace => {
                             if input_active {
@@ -279,6 +93,213 @@ pub fn run_app<B: Backend>(
 
         if last_tick.elapsed() >= tick_rate {
             last_tick = std::time::Instant::now();
+        }
+    }
+}
+
+fn handle_pane_switching(app: &mut App, input: &mut String, input_active: bool, key: u8) {
+    if input_active {
+        input.push_str(&key.to_string());
+    } else {
+        if key == 1 {
+            app.files.state.select(Some(0));
+            app.dirs.state.select(None);
+            app.content.state.select(None);
+        } else if key == 2 {
+            app.dirs.state.select(Some(0));
+            app.files.state.select(None);
+            app.content.state.select(None);
+        }
+    }
+}
+
+fn handle_movement(app: &mut App, input: &mut String, input_active: bool, key: char) {
+    if input_active {
+        input.push(key);
+    }
+
+    if app.files.state.selected().is_some() {
+        if key == 'j' {
+            app.files.next();
+        } else {
+            app.files.previous();
+        }
+    } else if app.dirs.state.selected().is_some() {
+        if key == 'j' {
+            app.dirs.next();
+        } else {
+            app.dirs.previous();
+        }
+    } else if app.content.state.selected().is_some() {
+        if key == 'j' {
+            app.content.next();
+        } else {
+            app.content.previous();
+        }
+    }
+}
+
+fn handle_new_file(app: &mut App, input: &mut String, input_active: &mut bool, key: char) {
+    if app.files.state.selected().is_some() {
+        if (*input_active == false && app.last_command != Some(Command::CreateFile))
+            || (*input_active == true && app.last_command.is_none())
+        {
+            *input_active = true;
+            app.show_popup = true;
+            app.last_command = Some(Command::CreateFile);
+        } else {
+            input.push(key);
+        }
+    } else if app.dirs.state.selected().is_some() {
+        if (*input_active == false && app.last_command != Some(Command::CreateDir))
+            || (*input_active == true && app.last_command.is_none())
+        {
+            *input_active = true;
+            app.show_popup = true;
+            app.last_command = Some(Command::CreateDir);
+        } else {
+            input.push(key);
+        }
+    } else {
+        input.push(key);
+    }
+}
+
+fn handle_nav(app: &mut App, input: &mut String, input_active: &mut bool, key: char) {
+    if *input_active == false {
+        app.show_nav = true;
+        *input_active = true;
+        app.last_command = Some(Command::ShowNav);
+    } else {
+        input.push(key);
+    }
+}
+
+fn handle_delete(app: &mut App) {
+    if app.files.state.selected().is_some() {
+        let file = app.files.items[app.files.state.selected().unwrap()]
+            .0
+            .clone();
+
+        std::fs::remove_file(file).unwrap();
+        app.update_files();
+    } else if app.dirs.state.selected().is_some() {
+        let dir = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
+
+        std::fs::remove_dir_all(dir).unwrap();
+        app.update_dirs();
+    }
+}
+
+fn handle_rename(app: &mut App, input: &mut String, input_active: &mut bool) {
+    if app.files.state.selected().is_some() {
+        if *input_active == false && app.last_command != Some(Command::RenameFile) {
+            *input_active = true;
+            app.show_popup = true;
+            app.last_command = Some(Command::RenameFile);
+            *input = app.files.items[app.files.state.selected().unwrap()]
+                .0
+                .clone();
+        } else {
+            input.push('r');
+        }
+    } else if app.dirs.state.selected().is_some() {
+        if *input_active == false && app.last_command != Some(Command::RenameDir) {
+            *input_active = true;
+            app.show_popup = true;
+            app.last_command = Some(Command::RenameDir);
+            *input = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
+        } else {
+            input.push('r');
+        }
+    } else {
+        if *input_active {
+            input.push('r');
+        }
+    }
+}
+
+fn handle_submit(app: &mut App, input: &mut String, input_active: &mut bool) {
+    if *input_active {
+        if app.last_command == Some(Command::CreateFile) {
+            App::create_file(&input);
+            app.update_files();
+            app.last_command = None;
+        } else if app.last_command == Some(Command::CreateDir) {
+            App::create_dir(&input);
+            app.update_dirs();
+            app.last_command = None;
+        } else if app.last_command == Some(Command::RenameFile) {
+            let file = app.files.items[app.files.state.selected().unwrap()]
+                .0
+                .clone();
+
+            std::fs::rename(file, input.clone()).unwrap();
+            app.update_files();
+            app.last_command = None;
+        } else if app.last_command == Some(Command::RenameDir) {
+            let dir = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
+
+            std::fs::rename(dir, input.clone()).unwrap();
+            app.update_dirs();
+            app.last_command = None;
+        } else if app.last_command == Some(Command::ShowNav) {
+            let path = Some(PathBuf::from(input.clone()));
+
+            if path.is_some() {
+                std::env::set_current_dir(path.unwrap()).unwrap();
+
+                app.cur_dir = std::env::current_dir()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string();
+
+                app.update_files();
+                app.update_dirs();
+
+                app.show_popup = false;
+                app.show_nav = false;
+                app.last_command = None;
+            } else {
+                app.show_popup = false;
+                app.show_nav = false;
+                app.last_command = None;
+            }
+        }
+
+        input.clear();
+        app.show_popup = false;
+        *input_active = false;
+    } else {
+        if app.dirs.state.selected().is_some() {
+            if app.dirs.items[app.dirs.state.selected().unwrap()].0 == "../" {
+                let mut path = std::env::current_dir().unwrap();
+                path.pop();
+
+                std::env::set_current_dir(path).unwrap();
+                app.cur_dir = get_pwd();
+            } else {
+                let dir = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
+
+                std::env::set_current_dir(dir).unwrap();
+                app.cur_dir = get_pwd();
+            }
+            app.update_files();
+            app.update_dirs();
+
+            if let Some(selected) = app.files.state.selected() {
+                if selected >= app.files.items.len() {
+                    if !app.files.items.is_empty() {
+                        app.files
+                            .state
+                            .select(Some(app.files.items.len().saturating_sub(1)));
+                    } else {
+                        app.files.state.select(None);
+                    }
+                }
+            }
+            app.dirs.state.select(Some(0));
         }
     }
 }
