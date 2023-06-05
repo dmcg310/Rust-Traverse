@@ -363,7 +363,7 @@ fn render_navigator<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, inp
 
         let input_box = Paragraph::new(input.clone())
             .style(Style::default())
-            .block(Block::default().title("Finder").borders(Borders::ALL))
+            .block(Block::default().title("Navigator").borders(Borders::ALL))
             .style(
                 Style::default()
                     .fg(Color::LightBlue)
@@ -381,7 +381,7 @@ fn render_fzf<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &m
             .borders(Borders::ALL)
             .title_alignment(Alignment::Center);
 
-        let area = centered_rect(f.size().width / 2, f.size().height / 2, size);
+        let area = centered_rect(f.size().width / 2, f.size().height / 1, size);
         f.render_widget(Clear, area);
         f.render_widget(block, area);
 
@@ -397,15 +397,11 @@ fn render_fzf<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &m
         f.render_widget(input_box, area);
 
         let results_text = app.fzf_results.join("\n");
-        let results_box = Paragraph::new(results_text)
-            .style(Style::default())
-            .block(Block::default().title("Results").borders(Borders::ALL))
-            .style(
-                Style::default()
-                    .fg(Color::White)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .alignment(Alignment::Left);
+        let results_box = List::new(vec![ListItem::new(results_text)])
+            .block(Block::default().borders(Borders::ALL).title("Results"))
+            .style(Style::default().fg(Color::White))
+            .highlight_style(Style::default().fg(Color::Red))
+            .highlight_symbol(">>");
 
         let results_area = Rect::new(area.x + area.width / 2, area.y, area.width / 2, area.height);
 

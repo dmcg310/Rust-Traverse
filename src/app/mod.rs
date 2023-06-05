@@ -21,6 +21,7 @@ pub struct App {
     pub show_nav: bool,
     pub show_fzf: bool,
     pub fzf_results: Vec<String>,
+    pub selected_fzf_result: usize,
     pub selected_item_state: ListState,
     pub last_command: Option<Command>,
 }
@@ -58,6 +59,7 @@ impl App {
             show_nav: false,
             show_fzf: false,
             fzf_results: vec![],
+            selected_fzf_result: 0,
             selected_item_state: ListState::default(),
             last_command: None,
         }

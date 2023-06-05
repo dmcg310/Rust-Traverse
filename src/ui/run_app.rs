@@ -6,8 +6,9 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use distance::levenshtein;
 use ratatui::backend::Backend;
 use ratatui::terminal::Terminal;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
+use trash;
 use walkdir::WalkDir;
 
 #[derive(PartialEq)]
@@ -52,8 +53,18 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char('k') | KeyCode::Up => {
                             handle_movement(&mut app, &mut input, input_active, 'k');
                         }
+                        KeyCode::Char('n')
+                            if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
+                        {
+                            handle_fzf_movement(&mut app, 1);
+                        }
                         KeyCode::Char('n') => {
                             handle_new_file(&mut app, &mut input, &mut input_active, 'n');
+                        }
+                        KeyCode::Char('p')
+                            if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
+                        {
+                            handle_fzf_movement(&mut app, -1);
                         }
                         KeyCode::Char('f') => {
                             handle_nav(&mut app, &mut input, &mut input_active, 'f');
@@ -70,10 +81,13 @@ pub fn run_app<B: Backend>(
                             handle_rename(&mut app, &mut input, &mut input_active);
                         }
                         KeyCode::Esc => {
-                            if input_active {
+                            if app.show_popup || app.show_nav || app.show_fzf {
                                 input_active = false;
                                 app.show_popup = false;
                                 app.show_nav = false;
+                                app.show_fzf = false;
+                                app.last_command = None;
+                                input.clear();
                             } else {
                                 return Ok(());
                             }
@@ -88,7 +102,11 @@ pub fn run_app<B: Backend>(
                             }
                         }
                         KeyCode::Enter => {
-                            handle_submit(&mut app, &mut input, &mut input_active);
+                            if app.show_fzf {
+                                handle_open_fzf_result(&mut app, &mut input, &mut input_active);
+                            } else {
+                                handle_submit(&mut app, &mut input, &mut input_active);
+                            }
                         }
                         KeyCode::Backspace => {
                             if input_active {
@@ -175,6 +193,17 @@ fn handle_new_file(app: &mut App, input: &mut String, input_active: &mut bool, k
     }
 }
 
+fn handle_fzf_movement(app: &mut App, idx: isize) {
+    let results = app.fzf_results.len();
+
+    if results > 0 {
+        let selected = app.selected_fzf_result as isize;
+        let new_selected = (selected + idx).rem_euclid(results as isize) as usize;
+
+        app.selected_fzf_result = new_selected as usize;
+    }
+}
+
 fn handle_nav(app: &mut App, input: &mut String, input_active: &mut bool, key: char) {
     if *input_active == false {
         app.show_nav = true;
@@ -186,18 +215,28 @@ fn handle_nav(app: &mut App, input: &mut String, input_active: &mut bool, key: c
 }
 
 fn handle_delete(app: &mut App) {
-    if app.files.state.selected().is_some() {
-        let file = app.files.items[app.files.state.selected().unwrap()]
-            .0
-            .clone();
+    if let Some(selected) = app.files.state.selected() {
+        let file = app.files.items[selected].0.clone();
 
-        std::fs::remove_file(file).unwrap();
+        trash::delete(&file).unwrap();
         app.update_files();
-    } else if app.dirs.state.selected().is_some() {
-        let dir = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
 
-        std::fs::remove_dir_all(dir).unwrap();
+        if selected >= app.files.items.len() {
+            app.files
+                .state
+                .select(Some(app.files.items.len().saturating_sub(1)));
+        }
+    } else if let Some(selected) = app.dirs.state.selected() {
+        let dir = app.dirs.items[selected].0.clone();
+
+        trash::delete(&dir).unwrap();
         app.update_dirs();
+
+        if selected >= app.dirs.items.len() {
+            app.dirs
+                .state
+                .select(Some(app.dirs.items.len().saturating_sub(1)));
+        }
     }
 }
 
@@ -234,10 +273,12 @@ fn handle_submit(app: &mut App, input: &mut String, input_active: &mut bool) {
         if app.last_command == Some(Command::CreateFile) {
             App::create_file(&input);
             app.update_files();
+            app.update_dirs();
             app.last_command = None;
         } else if app.last_command == Some(Command::CreateDir) {
             App::create_dir(&input);
             app.update_dirs();
+            app.update_files();
             app.last_command = None;
         } else if app.last_command == Some(Command::RenameFile) {
             let file = app.files.items[app.files.state.selected().unwrap()]
@@ -246,12 +287,14 @@ fn handle_submit(app: &mut App, input: &mut String, input_active: &mut bool) {
 
             std::fs::rename(file, input.clone()).unwrap();
             app.update_files();
+            app.update_dirs();
             app.last_command = None;
         } else if app.last_command == Some(Command::RenameDir) {
             let dir = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
 
             std::fs::rename(dir, input.clone()).unwrap();
             app.update_dirs();
+            app.update_files();
             app.last_command = None;
         } else if app.last_command == Some(Command::ShowNav) {
             let path = Some(PathBuf::from(input.clone()));
@@ -271,11 +314,6 @@ fn handle_submit(app: &mut App, input: &mut String, input_active: &mut bool) {
                 app.show_popup = false;
                 app.show_nav = false;
                 app.last_command = None;
-            } else if app.last_command == Some(Command::ShowFzf) {
-                // app.show_popup = false;
-                // app.update_dirs();
-                // app.update_files();
-                // app.last_command = None;
             } else {
                 app.show_popup = false;
                 app.show_nav = false;
@@ -286,6 +324,8 @@ fn handle_submit(app: &mut App, input: &mut String, input_active: &mut bool) {
         input.clear();
         app.show_popup = false;
         *input_active = false;
+        app.update_files();
+        app.update_dirs();
     } else {
         if app.dirs.state.selected().is_some() {
             if app.dirs.items[app.dirs.state.selected().unwrap()].0 == "../" {
@@ -319,7 +359,7 @@ fn handle_submit(app: &mut App, input: &mut String, input_active: &mut bool) {
     }
 }
 
-fn fzf(app: &mut App, input: &mut String, input_active: &mut bool) -> Vec<PathBuf> {
+fn fzf(app: &mut App, input: &mut String) -> Vec<PathBuf> {
     let query = input.clone();
     let dir = app.cur_dir.clone();
     let dir = dir.trim_end_matches('\n');
@@ -333,7 +373,7 @@ fn fzf(app: &mut App, input: &mut String, input_active: &mut bool) -> Vec<PathBu
             let filename = entry.file_name().to_str().unwrap().to_string();
             let dist = levenshtein(&query, &filename);
 
-            if dist < 5 {
+            if filename == query || dist < 5 {
                 result.push(entry.path().to_path_buf());
             }
         }
@@ -349,10 +389,35 @@ fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
 
     *input_active = true;
 
-    let result = fzf(app, input, input_active);
+    let result = fzf(app, input);
 
     app.fzf_results = result
         .into_iter()
         .map(|x| x.display().to_string())
         .collect();
+}
+
+fn handle_open_fzf_result(app: &mut App, input: &mut String, input_active: &mut bool) {
+    let selected = app.selected_fzf_result;
+    let path = &app.fzf_results[selected];
+
+    let parent = Path::new(path).parent().unwrap();
+    std::env::set_current_dir(parent).unwrap();
+    app.cur_dir = get_pwd();
+
+    app.update_files();
+    app.update_dirs();
+
+    app.show_fzf = false;
+    app.show_popup = false;
+    app.last_command = None;
+
+    input.clear();
+    *input_active = false;
+
+    app.fzf_results.clear();
+    app.selected_fzf_result = 0;
+
+    app.files.state.select(Some(0));
+    app.dirs.state.select(None);
 }
