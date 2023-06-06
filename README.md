@@ -8,10 +8,9 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 
 - [x] Full CRUD operations on files and directories.
 - [x] Keyboard shortcuts for navigation and operations, to make sure you don't have to leave the keyboard.
-- [x] Move files and directories.
 - [x] Traverse directly to a directory by typing its path.
 - [x] Configurable.
-- [x] Ctrl-F esque searching for files in the current directory.
+- [x] Fuzzy finder for files in your current directory.
 - [x] Preview files in the terminal.
 - [x] Blazingly fast.
 - [x] Cross platform.
@@ -23,7 +22,7 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 1. Install [Rust](https://www.rust-lang.org/tools/install).
 2. Clone the repository.
 3. Run `cargo build --release`.
-4. The binary will be in `target/release/rust-traverse`.
+4. The binary will be in `target/release/trav`.
 5. Add the binary to your path.
 
 ### From binaries
@@ -47,10 +46,15 @@ Run `trav` in your terminal.
 #### File and Directory Operations
 
 - `n`: Create a new file or directory, depending on the current pane.
-- `m`: Move the selected file or directory.
-- `CTRL + d`: Delete the selected file or directory.
+- `CTRL + d`: Delete the selected file or directory, (to bin).
 - `r`: Rename the selected file or directory.
 - `f`: Navigate to a directory using a relative or absolute path.
+
+#### Fuzzy Finder Operations
+
+- `w`: Toggle fzf.
+- `CTRL + n`: 'Next' item in results.
+- `CTRL + p`: 'Previous' item in results.
 
 ## Configuration
 
