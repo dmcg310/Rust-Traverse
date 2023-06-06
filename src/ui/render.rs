@@ -1,4 +1,4 @@
-use crate::app::{centered_rect, App};
+use crate::app::App;
 use crate::ui::pane::selected_pane_content;
 use anyhow::Result;
 use crossterm::{
@@ -89,7 +89,7 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
     render_details(f, app, &bottom_chunks, cur_dir, cur_du);
     render_input(f, app, size, input);
     render_navigator(f, app, size, input);
-    render_fzf(f, app, size, input);
+    render_fzf(f, app, size);
 }
 
 fn bottom_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
@@ -109,7 +109,10 @@ fn bottom_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
 }
 
 fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
-    let files_block = Block::default().borders(Borders::ALL).title("Files");
+    let files_block = Block::default()
+        .borders(Borders::ALL)
+        .title("Files")
+        .title_alignment(Alignment::Center);
     f.render_widget(files_block, chunks[0]);
 
     let files = app
@@ -120,11 +123,16 @@ fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
         .collect::<Vec<ListItem>>();
 
     let items = List::new(files)
-        .block(Block::default().borders(Borders::ALL).title("Files"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Files")
+                .title_alignment(Alignment::Center),
+        )
         .highlight_symbol("> ")
         .highlight_style(
             Style::default()
-                .fg(Color::Blue)
+                .fg(Color::LightGreen)
                 .add_modifier(Modifier::BOLD),
         );
 
@@ -135,7 +143,7 @@ fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
             .highlight_symbol("> ")
             .highlight_style(
                 Style::default()
-                    .fg(Color::Blue)
+                    .fg(Color::LightGreen)
                     .add_modifier(Modifier::BOLD),
             );
         f.render_stateful_widget(empty_list, chunks[0], &mut app.files.state);
@@ -158,12 +166,14 @@ fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
         let files_block = Block::default()
             .borders(Borders::ALL)
             .title("Files")
-            .border_style(Style::default().fg(Color::LightGreen));
+            .title_alignment(Alignment::Center)
+            .border_style(Style::default().fg(Color::LightBlue));
         f.render_widget(files_block, chunks[0]);
     } else {
         let files_block = Block::default()
             .borders(Borders::ALL)
             .title("Files")
+            .title_alignment(Alignment::Center)
             .border_style(Style::default().fg(Color::White));
         f.render_widget(files_block, chunks[0]);
     }
@@ -171,7 +181,11 @@ fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
 
 fn render_dirs<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
     app.cur_dir = get_pwd();
-    let dirs_block = Block::default().borders(Borders::ALL).title("Directories");
+
+    let dirs_block = Block::default()
+        .borders(Borders::ALL)
+        .title("Directories")
+        .title_alignment(Alignment::Center);
     f.render_widget(dirs_block, chunks[0]);
 
     let dirs = app
@@ -182,11 +196,16 @@ fn render_dirs<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
         .collect::<Vec<ListItem>>();
 
     let items = List::new(dirs)
-        .block(Block::default().borders(Borders::ALL).title("Directories"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Directories")
+                .title_alignment(Alignment::Center),
+        )
         .highlight_symbol("> ")
         .highlight_style(
             Style::default()
-                .fg(Color::Blue)
+                .fg(Color::LightGreen)
                 .add_modifier(Modifier::BOLD),
         );
 
@@ -196,12 +215,14 @@ fn render_dirs<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]) {
         let dirs_block = Block::default()
             .borders(Borders::ALL)
             .title("Directories")
-            .border_style(Style::default().fg(Color::LightGreen));
+            .title_alignment(Alignment::Center)
+            .border_style(Style::default().fg(Color::LightBlue));
         f.render_widget(dirs_block, chunks[0]);
     } else {
         let dirs_block = Block::default()
             .borders(Borders::ALL)
             .title("Directories")
+            .title_alignment(Alignment::Center)
             .border_style(Style::default().fg(Color::White));
         f.render_widget(dirs_block, chunks[0]);
     }
@@ -250,16 +271,17 @@ fn render_details<B: Backend>(
     let items = List::new(selected_item).block(
         Block::default()
             .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::LightYellow))
             .title("Details")
             .title_alignment(Alignment::Left),
     );
     f.render_widget(items, details_chunks[0]);
 
     let pwd_paragraph = Paragraph::new(cur_dir)
-        .style(Style::default())
         .block(
             Block::default()
                 .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::LightYellow))
                 .title_alignment(Alignment::Center)
                 .title("Current Directory"),
         )
@@ -267,10 +289,10 @@ fn render_details<B: Backend>(
     f.render_widget(pwd_paragraph, details_chunks[1]);
 
     let du_paragraph = Paragraph::new(cur_du)
-        .style(Style::default())
         .block(
             Block::default()
                 .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::LightYellow))
                 .title("Disk Usage")
                 .title_alignment(Alignment::Right),
         )
@@ -311,7 +333,8 @@ fn render_contents<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect])
 
     if total_line_count > 30 {
         content.push_str(&format!("\n... {} more lines", total_line_count - 30));
-    }
+        content.push_str(&format!("\n{} total", total_line_count));
+    };
 
     let items = List::new(vec![ListItem::new(content)])
         .block(Block::default().borders(Borders::ALL).title("Contents"));
@@ -333,18 +356,25 @@ fn render_input<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: 
             .borders(Borders::ALL)
             .title_alignment(Alignment::Center);
 
-        let area = centered_rect(25, 10, size);
+        let input_box_width = 30;
+        let input_box_height = 3;
+        let input_box_x = (size.width - input_box_width) / 4 + 3;
+        let input_box_y = (size.height - input_box_height) / 1;
+
+        let area = Rect::new(input_box_x, input_box_y, input_box_width, input_box_height);
+
         f.render_widget(Clear, area);
         f.render_widget(block, area);
 
         let input_box = Paragraph::new(input.clone())
             .style(Style::default())
-            .block(Block::default().title("Name").borders(Borders::ALL))
-            .style(
-                Style::default()
-                    .fg(Color::LightBlue)
-                    .add_modifier(Modifier::BOLD),
+            .block(
+                Block::default()
+                    .title("Input")
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::LightBlue)),
             )
+            .style(Style::default().add_modifier(Modifier::BOLD))
             .alignment(Alignment::Left);
         f.render_widget(input_box, area);
     }
@@ -357,7 +387,13 @@ fn render_navigator<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, inp
             .borders(Borders::ALL)
             .title_alignment(Alignment::Center);
 
-        let area = centered_rect(25, 10, size);
+        let input_box_width = 30;
+        let input_box_height = 3;
+        let input_box_x = (size.width - input_box_width) / 4 + 3;
+        let input_box_y = (size.height - input_box_height) / 1;
+
+        let area = Rect::new(input_box_x, input_box_y, input_box_width, input_box_height);
+
         f.render_widget(Clear, area);
         f.render_widget(block, area);
 
@@ -374,25 +410,28 @@ fn render_navigator<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, inp
     }
 }
 
-fn render_fzf<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &mut String) {
+fn render_fzf<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect) {
     if app.show_fzf {
-        let block = Block::default()
+        let block_width = f.size().width / 3;
+        let block_height = f.size().height / 3;
+        let block_x = (size.width - block_width) / 2;
+        let block_y = (size.height - block_height) / 2;
+
+        let area = Rect::new(block_x, block_y, block_width, block_height);
+
+        let results_block = Block::default()
+            .style(Style::default().add_modifier(Modifier::BOLD))
             .title("FZF")
+            .border_style(
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .borders(Borders::ALL)
             .title_alignment(Alignment::Center);
 
-        let input_box_area = centered_rect(f.size().width / 4, f.size().height / 4, size); // Halving the height of the input box
-        let results_box_area = centered_rect(f.size().width / 4, 3 * f.size().height / 4, size); // Adjusting the starting position and height of the results box
-
-        f.render_widget(Clear, input_box_area);
-        f.render_widget(block, input_box_area);
-
-        let input_box = Paragraph::new(input.clone())
-            .style(Style::default())
-            .block(Block::default().title("fzf").borders(Borders::ALL))
-            .style(Style::default().add_modifier(Modifier::BOLD))
-            .alignment(Alignment::Left);
-        f.render_widget(input_box, input_box_area);
+        f.render_widget(Clear, area);
+        f.render_widget(results_block, area);
 
         let results_text = app
             .fzf_results
@@ -401,11 +440,23 @@ fn render_fzf<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &m
             .map(|i| ListItem::new(i.clone()))
             .collect::<Vec<ListItem>>();
 
-        let results_box = List::new(results_text)
-            .block(Block::default().borders(Borders::ALL).title("Results"))
-            .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+        let results_list = List::new(results_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Results")
+                    .title_alignment(Alignment::Center),
+            )
+            .highlight_style(
+                Style::default()
+                    .add_modifier(Modifier::BOLD)
+                    .fg(Color::LightGreen),
+            )
             .highlight_symbol("> ");
 
-        f.render_stateful_widget(results_box, results_box_area, &mut app.fzf_results.state);
+        let results_list_area =
+            Rect::new(block_x + 1, block_y + 1, block_width - 2, block_height - 2);
+
+        f.render_stateful_widget(results_list, results_list_area, &mut app.fzf_results.state);
     }
 }

@@ -251,6 +251,7 @@ fn handle_rename(app: &mut App, input: &mut String, input_active: &mut bool) {
             *input_active = true;
             app.show_popup = true;
             app.last_command = Some(Command::RenameFile);
+
             *input = app.files.items[app.files.state.selected().unwrap()]
                 .0
                 .clone();
@@ -258,13 +259,17 @@ fn handle_rename(app: &mut App, input: &mut String, input_active: &mut bool) {
             input.push('r');
         }
     } else if app.dirs.state.selected().is_some() {
-        if *input_active == false && app.last_command != Some(Command::RenameDir) {
-            *input_active = true;
-            app.show_popup = true;
-            app.last_command = Some(Command::RenameDir);
-            *input = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
+        if app.dirs.items[app.dirs.state.selected().unwrap()].0 == "../" {
+            return;
         } else {
-            input.push('r');
+            if *input_active == false && app.last_command != Some(Command::RenameDir) {
+                *input_active = true;
+                app.show_popup = true;
+                app.last_command = Some(Command::RenameDir);
+                *input = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
+            } else {
+                input.push('r');
+            }
         }
     } else {
         if *input_active {
@@ -410,30 +415,34 @@ fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
 }
 
 fn handle_open_fzf_result(app: &mut App, input: &mut String, input_active: &mut bool) {
-    if app.fzf_results.items[app.fzf_results.state.selected().unwrap()]
-        .clone()
-        .is_ascii()
-    {
-        let path = app.fzf_results.items[app.fzf_results.state.selected().unwrap()].clone();
-        let path = PathBuf::from(path).parent().unwrap().to_path_buf();
-        std::env::set_current_dir(path).unwrap();
+    if app.fzf_results.state.selected().is_none() {
+        return;
+    } else {
+        if app.fzf_results.items[app.fzf_results.state.selected().unwrap()]
+            .clone()
+            .is_ascii()
+        {
+            let path = app.fzf_results.items[app.fzf_results.state.selected().unwrap()].clone();
+            let path = PathBuf::from(path).parent().unwrap().to_path_buf();
+            std::env::set_current_dir(path).unwrap();
 
-        app.update_files();
-        app.update_dirs();
+            app.update_files();
+            app.update_dirs();
 
-        app.show_fzf = false;
-        app.show_popup = false;
-        app.last_command = None;
+            app.show_fzf = false;
+            app.show_popup = false;
+            app.last_command = None;
 
-        input.clear();
-        *input_active = false;
+            input.clear();
+            *input_active = false;
 
-        app.fzf_results.state.select(None);
-        app.selected_fzf_result = 0;
+            app.fzf_results.state.select(None);
+            app.selected_fzf_result = 0;
 
-        app.files.state.select(Some(0));
-        app.dirs.state.select(None);
+            app.files.state.select(Some(0));
+            app.dirs.state.select(None);
 
-        app.cur_dir = get_pwd();
+            app.cur_dir = get_pwd();
+        }
     }
 }
