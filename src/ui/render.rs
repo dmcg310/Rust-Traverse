@@ -381,30 +381,31 @@ fn render_fzf<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect, input: &m
             .borders(Borders::ALL)
             .title_alignment(Alignment::Center);
 
-        let area = centered_rect(f.size().width / 2, f.size().height / 1, size);
-        f.render_widget(Clear, area);
-        f.render_widget(block, area);
+        let input_box_area = centered_rect(f.size().width / 4, f.size().height / 4, size); // Halving the height of the input box
+        let results_box_area = centered_rect(f.size().width / 4, 3 * f.size().height / 4, size); // Adjusting the starting position and height of the results box
+
+        f.render_widget(Clear, input_box_area);
+        f.render_widget(block, input_box_area);
 
         let input_box = Paragraph::new(input.clone())
             .style(Style::default())
-            .block(Block::default().title("lost?").borders(Borders::ALL))
-            .style(
-                Style::default()
-                    .fg(Color::LightBlue)
-                    .add_modifier(Modifier::BOLD),
-            )
+            .block(Block::default().title("fzf").borders(Borders::ALL))
+            .style(Style::default().add_modifier(Modifier::BOLD))
             .alignment(Alignment::Left);
-        f.render_widget(input_box, area);
+        f.render_widget(input_box, input_box_area);
 
-        let results_text = app.fzf_results.join("\n");
-        let results_box = List::new(vec![ListItem::new(results_text)])
+        let results_text = app
+            .fzf_results
+            .items
+            .iter()
+            .map(|i| ListItem::new(i.clone()))
+            .collect::<Vec<ListItem>>();
+
+        let results_box = List::new(results_text)
             .block(Block::default().borders(Borders::ALL).title("Results"))
-            .style(Style::default().fg(Color::White))
-            .highlight_style(Style::default().fg(Color::Red))
-            .highlight_symbol(">>");
+            .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+            .highlight_symbol("> ");
 
-        let results_area = Rect::new(area.x + area.width / 2, area.y, area.width / 2, area.height);
-
-        f.render_widget(results_box, results_area);
+        f.render_stateful_widget(results_box, results_box_area, &mut app.fzf_results.state);
     }
 }

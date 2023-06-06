@@ -1,4 +1,5 @@
 use super::render::render;
+use super::stateful_list::StatefulList;
 use crate::app::App;
 use crate::ui::pane::get_pwd;
 use anyhow::Result;
@@ -6,7 +7,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use distance::levenshtein;
 use ratatui::backend::Backend;
 use ratatui::terminal::Terminal;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 use trash;
 use walkdir::WalkDir;
@@ -194,13 +195,17 @@ fn handle_new_file(app: &mut App, input: &mut String, input_active: &mut bool, k
 }
 
 fn handle_fzf_movement(app: &mut App, idx: isize) {
-    let results = app.fzf_results.len();
+    let results = app.fzf_results.items.len();
 
     if results > 0 {
-        let selected = app.selected_fzf_result as isize;
-        let new_selected = (selected + idx).rem_euclid(results as isize) as usize;
+        if app.fzf_results.state.selected().is_none() {
+            app.fzf_results.state.select(Some(0));
+        } else {
+            let selected = app.fzf_results.state.selected().unwrap() as isize;
+            let new_selected = (selected + idx).rem_euclid(results as isize) as usize;
 
-        app.selected_fzf_result = new_selected as usize;
+            app.fzf_results.state.select(Some(new_selected));
+        }
     }
 }
 
@@ -370,6 +375,11 @@ fn fzf(app: &mut App, input: &mut String) -> Vec<PathBuf> {
         let entry = entry.unwrap();
 
         if entry.file_type().is_file() {
+            if entry.path().to_str().unwrap().contains(".git") {
+                // config
+                continue;
+            }
+
             let filename = entry.file_name().to_str().unwrap().to_string();
             let dist = levenshtein(&query, &filename);
 
@@ -391,33 +401,39 @@ fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
 
     let result = fzf(app, input);
 
-    app.fzf_results = result
-        .into_iter()
-        .map(|x| x.display().to_string())
-        .collect();
+    app.fzf_results = StatefulList::with_items(
+        result
+            .iter()
+            .map(|x| x.to_str().unwrap().to_string())
+            .collect(),
+    );
 }
 
 fn handle_open_fzf_result(app: &mut App, input: &mut String, input_active: &mut bool) {
-    let selected = app.selected_fzf_result;
-    let path = &app.fzf_results[selected];
+    if app.fzf_results.items[app.fzf_results.state.selected().unwrap()]
+        .clone()
+        .is_ascii()
+    {
+        let path = app.fzf_results.items[app.fzf_results.state.selected().unwrap()].clone();
+        let path = PathBuf::from(path).parent().unwrap().to_path_buf();
+        std::env::set_current_dir(path).unwrap();
 
-    let parent = Path::new(path).parent().unwrap();
-    std::env::set_current_dir(parent).unwrap();
-    app.cur_dir = get_pwd();
+        app.update_files();
+        app.update_dirs();
 
-    app.update_files();
-    app.update_dirs();
+        app.show_fzf = false;
+        app.show_popup = false;
+        app.last_command = None;
 
-    app.show_fzf = false;
-    app.show_popup = false;
-    app.last_command = None;
+        input.clear();
+        *input_active = false;
 
-    input.clear();
-    *input_active = false;
+        app.fzf_results.state.select(None);
+        app.selected_fzf_result = 0;
 
-    app.fzf_results.clear();
-    app.selected_fzf_result = 0;
+        app.files.state.select(Some(0));
+        app.dirs.state.select(None);
 
-    app.files.state.select(Some(0));
-    app.dirs.state.select(None);
+        app.cur_dir = get_pwd();
+    }
 }
