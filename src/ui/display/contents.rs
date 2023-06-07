@@ -31,14 +31,22 @@ pub fn render_contents<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Re
         let mut buf_reader = BufReader::new(file);
         let mut line = String::new();
 
-        while buf_reader.read_line(&mut line).unwrap() > 0 {
-            total_line_count += 1;
+        if buf_reader.read_line(&mut line).is_err() {
+            content.push_str("File is not UTF-8 encoded");
+        } else {
+            if buf_reader.read_line(&mut line).is_err() {
+                content.push_str("File is not UTF-8 encoded");
+            } else {
+                while buf_reader.read_line(&mut line).unwrap() > 0 {
+                    total_line_count += 1;
 
-            if total_line_count <= 30 {
-                content.push_str(&line);
+                    if total_line_count <= 30 {
+                        content.push_str(&line);
+                    }
+
+                    line.clear();
+                }
             }
-
-            line.clear();
         }
     }
 

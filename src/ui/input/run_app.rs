@@ -120,6 +120,13 @@ pub fn run_app<B: Backend>(
                         {
                             file_ops::handle_delete(&mut app);
                         }
+                        KeyCode::Char('x') => {
+                            if input_active {
+                                input.push('x');
+                            } else {
+                                file_ops::extract(&mut app);
+                            }
+                        }
                         KeyCode::Char('r') => {
                             if input_active {
                                 input.push('r');

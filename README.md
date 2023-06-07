@@ -10,6 +10,7 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 - [x] Keyboard shortcuts for navigation and operations, to make sure you don't have to leave the keyboard.
 - [x] Traverse directly to a directory by typing its path.
 - [x] Configurable.
+- [x] Extract tar.gz, or zip archives.
 - [x] Bookmarks for your favourite directories.
 - [x] Fuzzy finder for files in your current directory.
 - [x] Preview files in the terminal.
@@ -50,6 +51,7 @@ Run `trav` in your terminal.
 - `CTRL + d`: Delete the selected file or directory, (to bin).
 - `r`: Rename the selected file or directory.
 - `f`: Navigate to a directory using a relative or absolute path.
+- `x`: Extract the selected archive, to the current directory.
 
 #### Fuzzy Finder Operations
 

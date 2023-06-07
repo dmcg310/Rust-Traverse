@@ -1,4 +1,4 @@
-use super::run_app::Command;
+use super::{extract::*, run_app::Command};
 use crate::app::app::App;
 
 pub fn handle_new_file(app: &mut App, input_active: &mut bool) {
@@ -76,6 +76,20 @@ pub fn handle_rename(app: &mut App, input: &mut String, input_active: &mut bool)
                 app.last_command = Some(Command::RenameDir);
                 *input = app.dirs.items[app.dirs.state.selected().unwrap()].0.clone();
             }
+        }
+    }
+}
+
+pub fn extract(app: &mut App) {
+    if app.files.state.selected().is_some() {
+        let file = app.files.items[app.files.state.selected().unwrap()]
+            .0
+            .clone();
+
+        if file.ends_with(".tar.gz") {
+            extract_tar(app, &file).expect("Failed to extract tar file");
+        } else if file.ends_with(".zip") {
+            extract_zip(app, &file).expect("Failed to extract zip file");
         }
     }
 }
