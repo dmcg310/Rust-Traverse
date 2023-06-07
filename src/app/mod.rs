@@ -5,7 +5,7 @@ use crate::ui::{
 };
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
+    layout::Rect,
     style::Style,
     widgets::{ListState, Widget},
 };
@@ -20,10 +20,12 @@ pub struct App {
     pub show_popup: bool,
     pub show_nav: bool,
     pub show_fzf: bool,
+    pub show_bookmark: bool,
     pub fzf_results: StatefulList<String>,
     pub selected_fzf_result: usize,
     pub selected_item_state: ListState,
     pub last_command: Option<Command>,
+    pub bookmarked_dirs: StatefulList<String>,
 }
 
 impl App {
@@ -58,10 +60,12 @@ impl App {
             show_popup: false,
             show_nav: false,
             show_fzf: false,
+            show_bookmark: false,
             fzf_results: StatefulList::with_items(vec![]),
             selected_fzf_result: 0,
             selected_item_state: ListState::default(),
             last_command: None,
+            bookmarked_dirs: StatefulList::with_items(vec![]),
         }
     }
 
@@ -86,6 +90,10 @@ impl App {
                 self.dirs.items.push((temp.clone(), temp));
             }
         }
+    }
+
+    pub fn update_bookmarks(&mut self) {
+        self.show_bookmark = true;
     }
 
     pub fn create_file(input: &str) -> bool {
@@ -115,30 +123,4 @@ impl<'a> Widget for InputBox<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         buf.set_stringn(area.x, area.y, self.text, area.width as usize, self.style);
     }
-}
-
-pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(ratatui::layout::Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
-
-    Layout::default()
-        .direction(ratatui::layout::Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
 }

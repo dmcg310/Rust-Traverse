@@ -10,6 +10,7 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 - [x] Keyboard shortcuts for navigation and operations, to make sure you don't have to leave the keyboard.
 - [x] Traverse directly to a directory by typing its path.
 - [x] Configurable.
+- [x] Bookmarks for your favourite directories.
 - [x] Fuzzy finder for files in your current directory.
 - [x] Preview files in the terminal.
 - [x] Blazingly fast.
@@ -55,6 +56,13 @@ Run `trav` in your terminal.
 - `w`: Toggle fzf.
 - `CTRL + n`: 'Next' item in results.
 - `CTRL + p`: 'Previous' item in results.
+
+#### Bookmark Operations
+
+- `b`: Shows bookarks menu.
+- `z`: Add current directory to bookmarks.
+- `CTRL + n`: 'Next' bookmark in menu.
+- `CTRL + p`: 'Previous' bookmark in menu.
 
 ## Configuration
 
