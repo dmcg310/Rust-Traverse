@@ -1,6 +1,6 @@
 use super::stateful_list::StatefulList;
 use super::*;
-use crate::app::App;
+use crate::app::app::App;
 use distance::levenshtein;
 use run_app::Command;
 use std::path::PathBuf;

@@ -1,4 +1,4 @@
-use crate::app::App;
+use crate::app::app::App;
 
 pub fn handle_movement(app: &mut App, key: char) {
     if app.files.state.selected().is_some() {

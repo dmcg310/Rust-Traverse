@@ -1,6 +1,6 @@
-use super::render::render;
 use super::*;
-use crate::app::App;
+use crate::app::app::App;
+use crate::ui::display::render::render;
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::backend::Backend;

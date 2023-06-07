@@ -1,5 +1,5 @@
 use super::run_app::Command;
-use crate::app::App;
+use crate::app::app::App;
 
 pub fn handle_bookmark(app: &mut App) {
     if app.last_command != Some(Command::Bookmark) {

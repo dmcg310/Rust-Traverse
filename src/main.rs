@@ -1,7 +1,7 @@
 mod app;
 mod ui;
 
-use ui::render::init;
+use ui::display::render::init;
 
 fn main() {
     init().unwrap();

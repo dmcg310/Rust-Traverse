@@ -1,6 +1,6 @@
 use super::*;
-use crate::app::App;
-use crate::ui::pane::get_pwd;
+use crate::app::app::App;
+use crate::ui::display::pane::get_pwd;
 use run_app::Command;
 use std::path::PathBuf;
 
