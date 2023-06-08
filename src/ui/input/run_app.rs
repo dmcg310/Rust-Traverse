@@ -118,7 +118,11 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char('d')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
-                            file_ops::handle_delete(&mut app);
+                            if app.show_bookmark {
+                                bookmark::delete_bookmark(&mut app);
+                            } else {
+                                file_ops::handle_delete(&mut app);
+                            }
                         }
                         KeyCode::Char('x') => {
                             if input_active {
