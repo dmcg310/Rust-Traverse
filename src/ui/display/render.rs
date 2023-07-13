@@ -82,6 +82,7 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
     inputs::render_input(f, app, size, input);
     navs::render_navigator(f, app, size, input);
     navs::render_fzf(f, app, size);
+    help::render_help(f, app, size);
     bookmarks::render_bookmark(f, app, size);
 }
 

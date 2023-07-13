@@ -9,6 +9,7 @@ use ratatui::{
     widgets::{Block, Borders, List},
     Frame,
 };
+
 pub fn render_bookmark<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect) {
     if app.show_bookmark {
         let block_width = f.size().width / 3;

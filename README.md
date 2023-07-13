@@ -66,6 +66,6 @@ Run `trav` in your terminal.
 - `CTRL + n`: 'Next' bookmark in menu.
 - `CTRL + p`: 'Previous' bookmark in menu.
 
-## Configuration
+#### Help
 
-TODO
+- `?`: Shows help menu.

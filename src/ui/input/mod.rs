@@ -1,6 +1,7 @@
 pub mod bookmark;
 pub mod extract;
 pub mod file_ops;
+pub mod help;
 pub mod movement;
 pub mod nav;
 pub mod run_app;

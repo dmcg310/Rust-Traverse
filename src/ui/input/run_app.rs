@@ -15,6 +15,7 @@ pub enum Command {
     RenameDir,
     ShowNav,
     ShowFzf,
+    ShowHelp,
     Bookmark,
 }
 
@@ -108,6 +109,16 @@ pub fn run_app<B: Backend>(
                                 nav::handle_nav(&mut app, &mut input_active);
                             }
                         }
+                        KeyCode::Char('?') => {
+                            if input_active {
+                                input.push('?');
+                            } else if app.show_help {
+                                app.show_help = false;
+                                app.last_command = None;
+                            } else {
+                                help::handle_help(&mut app);
+                            }
+                        }
                         KeyCode::Char('w') => {
                             if input_active {
                                 input.push('w');
@@ -139,13 +150,38 @@ pub fn run_app<B: Backend>(
                             }
                         }
                         KeyCode::Esc => {
-                            if app.show_popup || app.show_nav || app.show_fzf || app.show_bookmark {
+                            if app.show_popup
+                                || app.show_nav
+                                || app.show_fzf
+                                || app.show_bookmark
+                                || app.show_help
+                            {
                                 input_active = false;
                                 app.show_popup = false;
                                 app.show_nav = false;
                                 app.show_fzf = false;
                                 app.last_command = None;
                                 app.show_bookmark = false;
+                                app.show_help = false;
+                                input.clear();
+                            } else {
+                                return Ok(());
+                            }
+                        }
+                        KeyCode::Char('q') => {
+                            if app.show_popup
+                                || app.show_nav
+                                || app.show_fzf
+                                || app.show_bookmark
+                                || app.show_help
+                            {
+                                input_active = false;
+                                app.show_popup = false;
+                                app.show_nav = false;
+                                app.show_fzf = false;
+                                app.last_command = None;
+                                app.show_bookmark = false;
+                                app.show_help = false;
                                 input.clear();
                             } else {
                                 return Ok(());

@@ -6,3 +6,4 @@ pub mod inputs;
 pub mod navs;
 pub mod pane;
 pub mod render;
+pub mod help;
