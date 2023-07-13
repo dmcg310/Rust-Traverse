@@ -51,15 +51,17 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
     let cur_du = app.cur_du.clone();
 
     let size = f.size();
+    let fifty_percent = (size.width as f32 * 0.5) as u16;
+    let ninety_percent = (size.height as f32 * 0.9) as u16;
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .constraints([Constraint::Length(fifty_percent), Constraint::Min(1)])
         .split(size);
 
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(90), Constraint::Percentage(10)])
+        .constraints([Constraint::Length(ninety_percent), Constraint::Min(1)])
         .split(chunks[0]);
 
     let right_chunks = Layout::default()
@@ -85,15 +87,16 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
 
 fn bottom_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {
     let size = f.size();
+    let ninety_percent = (size.height as f32 * 0.9) as u16;
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(94), Constraint::Percentage(6)].as_ref())
+        .constraints([Constraint::Length(ninety_percent), Constraint::Min(1)])
         .split(size);
 
     let bottom_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(100)])
+        .constraints([Constraint::Percentage(f.size().width / 2)])
         .split(chunks[1]);
 
     (bottom_chunks).to_vec()

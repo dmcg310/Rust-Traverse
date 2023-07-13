@@ -24,39 +24,52 @@ pub fn render_contents<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Re
     };
 
     let mut content = String::new();
-    let mut total_line_count = 0;
+    let max_lines = chunks[0].height as usize - 2;
 
     if !selected_file.is_empty() {
-        let file = File::open(selected_file).unwrap();
-        let mut buf_reader = BufReader::new(file);
-        let mut line = String::new();
+        let metadata = match std::fs::metadata(selected_file) {
+            Ok(metadata) => metadata,
+            Err(err) => {
+                println!("Error getting metadata for file: {}", err);
+                return;
+            }
+        };
 
-        if buf_reader.read_line(&mut line).is_err() {
-            content.push_str("File is not UTF-8 encoded");
-        } else {
-            if buf_reader.read_line(&mut line).is_err() {
-                content.push_str("File is not UTF-8 encoded");
-            } else {
-                while buf_reader.read_line(&mut line).unwrap() > 0 {
-                    total_line_count += 1;
+        if !metadata.is_file() {
+            println!("Not a regular file: {}", selected_file);
+            return;
+        }
 
-                    if total_line_count <= 30 {
-                        content.push_str(&line);
-                    }
+        let file = match File::open(selected_file) {
+            Ok(file) => file,
+            Err(err) => {
+                println!("Error opening file: {}", err);
+                return;
+            }
+        };
 
-                    line.clear();
+        let reader = BufReader::new(file);
+        // TODO: check for reading binary files
+        for (num, line) in reader.lines().enumerate() {
+            if num >= max_lines {
+                break;
+            }
+
+            match line {
+                Ok(line) => {
+                    content.push_str(&line);
+                    content.push('\n');
+                }
+                Err(err) => {
+                    println!("Error reading line: {}", err);
+                    return;
                 }
             }
         }
     }
 
-    if total_line_count > 30 {
-        content.push_str(&format!("\n... {} more lines", total_line_count - 30));
-        content.push_str(&format!("\n{} total", total_line_count));
-    };
-
     let items = List::new(vec![ListItem::new(content)])
-        .block(Block::default().borders(Borders::ALL).title("Contents"));
+        .block(Block::default().borders(Borders::ALL).title("Preview"));
 
     f.render_stateful_widget(items, chunks[0], &mut app.files.state);
 
