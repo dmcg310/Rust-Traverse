@@ -1,10 +1,9 @@
 use super::stateful_list::StatefulList;
 use super::*;
 use crate::app::app::App;
-use crate::ui::display::block::block_binds;
-use distance::levenshtein;
 use run_app::Command;
 use std::path::PathBuf;
+use sublime_fuzzy::best_match;
 use walkdir::WalkDir;
 
 pub fn handle_nav(app: &mut App, input_active: &mut bool) {
@@ -32,10 +31,11 @@ fn fzf(app: &mut App, input: &mut String) -> Vec<PathBuf> {
             }
 
             let filename = entry.file_name().to_str().unwrap().to_string();
-            let dist = levenshtein(&query, &filename);
 
-            if filename == query || dist < 5 {
-                result.push(entry.path().to_path_buf());
+            if let Some(matched) = best_match(&query, &filename) {
+                if matched.score() > 0 {
+                    result.push(entry.path().to_path_buf());
+                }
             }
         }
     }
@@ -44,10 +44,6 @@ fn fzf(app: &mut App, input: &mut String) -> Vec<PathBuf> {
 }
 
 pub fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
-    if block_binds(app) {
-        return;
-    }
-
     app.show_fzf = true;
     app.show_popup = true;
     app.last_command = Some(Command::ShowFzf);

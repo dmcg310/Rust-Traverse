@@ -47,8 +47,8 @@ pub fn render_navigator<B: Backend>(
 
 pub fn render_fzf<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect) {
     if app.show_fzf {
-        let block_width = f.size().width / 3;
-        let block_height = f.size().height / 3;
+        let block_width = f.size().width / 1;
+        let block_height = f.size().height / 2;
         let block_x = (size.width - block_width) / 2;
         let block_y = (size.height - block_height) / 2;
 

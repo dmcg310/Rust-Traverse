@@ -169,6 +169,11 @@ pub fn run_app<B: Backend>(
                                 return Ok(());
                             }
                         }
+                        KeyCode::Char('c')
+                            if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
+                        {
+                            return Ok(());
+                        }
                         KeyCode::Char('q') => {
                             if app.show_fzf || app.show_nav {
                                 input.push('q');
@@ -199,6 +204,10 @@ pub fn run_app<B: Backend>(
                                 if app.last_command == Some(Command::ShowFzf) {
                                     nav::handle_fzf(&mut app, &mut input, &mut input_active);
                                 }
+
+                                if app.show_fzf {
+                                    nav::handle_fzf(&mut app, &mut input, &mut input_active);
+                                }
                             }
                         }
                         KeyCode::Enter => {
@@ -217,6 +226,9 @@ pub fn run_app<B: Backend>(
                         KeyCode::Backspace => {
                             if input_active {
                                 input.pop();
+                                if app.show_fzf {
+                                    nav::handle_fzf(&mut app, &mut input, &mut input_active);
+                                }
                             }
                         }
                         _ => {}

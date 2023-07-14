@@ -79,7 +79,8 @@ impl App {
             if entry.metadata().unwrap().is_file() {
                 let temp = entry.file_name().into_string().unwrap();
                 if temp == "swapfile" {
-                    // previewing this file devastates the terminal
+                    // previewing this file devastates the terminal,
+                    // mine anyway
                     continue;
                 }
 
