@@ -40,6 +40,7 @@ impl App {
         let mut dirs = StatefulList::with_items(vec![(("../".to_string(), "../".to_string()))]);
         for entry in read_dir("./").unwrap() {
             let entry = entry.unwrap();
+
             if entry.metadata().unwrap().is_dir() {
                 let temp = entry.file_name().into_string().unwrap();
                 dirs.items.push((temp.clone(), temp));
@@ -70,24 +71,70 @@ impl App {
 
     pub fn update_files(&mut self) {
         self.files.items.clear();
+
+        let mut file_entries: Vec<(String, String)> = vec![];
+
         for entry in read_dir("./").unwrap() {
             let entry = entry.unwrap();
             if entry.metadata().unwrap().is_file() {
                 let temp = entry.file_name().into_string().unwrap();
-                self.files.items.push((temp.clone(), temp));
+                if temp == "swapfile" {
+                    // previewing this file devastates the terminal
+                    continue;
+                }
+
+                file_entries.push((temp.clone(), temp));
             }
+        }
+
+        file_entries.sort_by(|a, b| {
+            let a_starts_with_dot = a.0.starts_with(".");
+            let b_starts_with_dot = b.0.starts_with(".");
+
+            if a_starts_with_dot && !b_starts_with_dot {
+                std::cmp::Ordering::Greater
+            } else if !a_starts_with_dot && b_starts_with_dot {
+                std::cmp::Ordering::Less
+            } else {
+                a.0.cmp(&b.0)
+            }
+        });
+
+        for file in file_entries {
+            self.files.items.push(file);
         }
     }
 
     pub fn update_dirs(&mut self) {
         self.dirs.items.clear();
         self.dirs.items.push(("../".to_string(), "../".to_string()));
+
+        let mut dir_entries: Vec<(String, String)> = vec![];
+
         for entry in read_dir("./").unwrap() {
             let entry = entry.unwrap();
+
             if entry.metadata().unwrap().is_dir() {
                 let temp = entry.file_name().into_string().unwrap();
-                self.dirs.items.push((temp.clone(), temp));
+                dir_entries.push((temp.clone(), temp));
             }
+        }
+
+        dir_entries.sort_by(|a, b| {
+            let a_starts_with_dot = a.0.starts_with(".");
+            let b_starts_with_dot = b.0.starts_with(".");
+
+            if a_starts_with_dot && !b_starts_with_dot {
+                std::cmp::Ordering::Greater
+            } else if !a_starts_with_dot && b_starts_with_dot {
+                std::cmp::Ordering::Less
+            } else {
+                a.0.cmp(&b.0)
+            }
+        });
+
+        for dir in dir_entries {
+            self.dirs.items.push(dir);
         }
     }
 
