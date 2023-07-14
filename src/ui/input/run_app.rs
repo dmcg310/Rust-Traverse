@@ -1,5 +1,6 @@
 use super::*;
 use crate::app::app::App;
+use crate::ui::display::block::block_binds;
 use crate::ui::display::render::render;
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
@@ -80,7 +81,7 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char('n')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
-                            if app.show_fzf {
+                            if app.show_fzf && block_binds(&mut app) {
                                 movement::handle_fzf_movement(&mut app, 1);
                             } else if app.show_bookmark {
                                 movement::handle_bookmark_movement(&mut app, 1);
@@ -96,7 +97,7 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char('p')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
-                            if app.show_fzf {
+                            if app.show_fzf && block_binds(&mut app) {
                                 movement::handle_fzf_movement(&mut app, -1);
                             } else if app.show_bookmark {
                                 movement::handle_bookmark_movement(&mut app, -1);
@@ -169,22 +170,26 @@ pub fn run_app<B: Backend>(
                             }
                         }
                         KeyCode::Char('q') => {
-                            if app.show_popup
-                                || app.show_nav
-                                || app.show_fzf
-                                || app.show_bookmark
-                                || app.show_help
-                            {
-                                input_active = false;
-                                app.show_popup = false;
-                                app.show_nav = false;
-                                app.show_fzf = false;
-                                app.last_command = None;
-                                app.show_bookmark = false;
-                                app.show_help = false;
-                                input.clear();
+                            if app.show_fzf || app.show_nav {
+                                input.push('q');
                             } else {
-                                return Ok(());
+                                if app.show_popup
+                                    || app.show_nav
+                                    || app.show_fzf
+                                    || app.show_bookmark
+                                    || app.show_help
+                                {
+                                    input_active = false;
+                                    app.show_popup = false;
+                                    app.show_nav = false;
+                                    app.show_fzf = false;
+                                    app.last_command = None;
+                                    app.show_bookmark = false;
+                                    app.show_help = false;
+                                    input.clear();
+                                } else {
+                                    return Ok(());
+                                }
                             }
                         }
                         KeyCode::Char(c) => {

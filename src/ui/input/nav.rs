@@ -1,6 +1,7 @@
 use super::stateful_list::StatefulList;
 use super::*;
 use crate::app::app::App;
+use crate::ui::display::block::block_binds;
 use distance::levenshtein;
 use run_app::Command;
 use std::path::PathBuf;
@@ -43,6 +44,10 @@ fn fzf(app: &mut App, input: &mut String) -> Vec<PathBuf> {
 }
 
 pub fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
+    if block_binds(app) {
+        return;
+    }
+
     app.show_fzf = true;
     app.show_popup = true;
     app.last_command = Some(Command::ShowFzf);

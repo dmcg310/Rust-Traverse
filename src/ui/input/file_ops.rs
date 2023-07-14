@@ -1,5 +1,5 @@
 use super::{extract::*, run_app::Command};
-use crate::app::app::App;
+use crate::{app::app::App, ui::display::block::block_binds};
 
 pub fn handle_new_file(app: &mut App, input_active: &mut bool) {
     if app.files.state.selected().is_some() {
@@ -56,6 +56,10 @@ pub fn handle_delete(app: &mut App) {
 }
 
 pub fn handle_rename(app: &mut App, input: &mut String, input_active: &mut bool) {
+    if block_binds(app) {
+        return;
+    }
+
     if app.files.state.selected().is_some() {
         if *input_active == false && app.last_command != Some(Command::RenameFile) {
             *input_active = true;

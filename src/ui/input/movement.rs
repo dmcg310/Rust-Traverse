@@ -1,6 +1,10 @@
-use crate::app::app::App;
+use crate::{app::app::App, ui::display::block::block_binds};
 
 pub fn handle_movement(app: &mut App, key: char) {
+    if block_binds(app) {
+        return;
+    }
+
     if app.files.state.selected().is_some() {
         if key == 'j' {
             app.files.next();
@@ -53,6 +57,10 @@ pub fn handle_bookmark_movement(app: &mut App, idx: isize) {
 }
 
 pub fn handle_pane_switching(app: &mut App, key: u8) {
+    if block_binds(app) {
+        return;
+    }
+
     if key == 1 {
         app.files.state.select(Some(0));
         app.dirs.state.select(None);
