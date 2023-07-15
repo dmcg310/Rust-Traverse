@@ -15,7 +15,6 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 - [x] Fuzzy finder for files in your current directory.
 - [x] Preview files in the terminal.
 - [x] Blazingly fast.
-- [x] Cross platform.
 
 ## Installation
 
@@ -24,22 +23,18 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 1. Install [Rust](https://www.rust-lang.org/tools/install).
 2. Clone the repository.
 3. Run `cargo build --release`.
-4. The binary will be in `target/release/trav`.
+4. The binary will be in `target/release/rt`.
 5. Add the binary to your path.
-
-### From binaries
-
-1. TODO (I'll add them soon).
 
 ## Usage
 
-Run `trav` in your terminal.
+Run `rt` in your terminal.
 
 ### Keyboard Shortcuts
 
 #### Navigation
 
-- `ESC`: Quit the application.
+- `ESC` or `q`: Quit the application.
 - `1`: Select the Files pane.
 - `2`: Select the Directories pane.
 - `j`: Select the next item in the current pane.
