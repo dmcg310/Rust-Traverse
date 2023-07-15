@@ -166,12 +166,14 @@ pub fn run_app<B: Backend>(
                                 app.show_help = false;
                                 input.clear();
                             } else {
+                                nav::output_cur_dir();
                                 return Ok(());
                             }
                         }
                         KeyCode::Char('c')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
+                            nav::output_cur_dir();
                             return Ok(());
                         }
                         KeyCode::Char('q') => {
@@ -193,6 +195,7 @@ pub fn run_app<B: Backend>(
                                     app.show_help = false;
                                     input.clear();
                                 } else {
+                                    nav::output_cur_dir();
                                     return Ok(());
                                 }
                             }

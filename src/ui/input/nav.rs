@@ -1,13 +1,21 @@
 use super::stateful_list::StatefulList;
 use super::*;
 use crate::app::app::App;
+use crate::ui::display::pane::get_pwd;
+use crossterm::{
+    cursor::MoveTo, cursor::Show, execute, style::Print, style::ResetColor, terminal::Clear,
+    terminal::ClearType,
+};
 use run_app::Command;
+use std::io::stdout;
+use std::io::Write;
 use std::path::PathBuf;
+use std::process::exit;
 use sublime_fuzzy::best_match;
 use walkdir::WalkDir;
 
 pub fn handle_nav(app: &mut App, input_active: &mut bool) {
-    if *input_active == false {
+    if !*input_active {
         app.show_nav = true;
         *input_active = true;
         app.last_command = Some(Command::ShowNav);
@@ -58,4 +66,26 @@ pub fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
             .map(|x| x.to_str().unwrap().to_string())
             .collect(),
     );
+}
+
+pub fn output_cur_dir() {
+    crossterm::terminal::disable_raw_mode().unwrap();
+
+    let dir = get_pwd();
+
+    execute!(
+        stdout(),
+        Clear(ClearType::All),
+        ResetColor,
+        Show,
+        MoveTo(0, 0),
+        Print(format!(
+            "To navigate to traverse's last directory: cd {}",
+            dir
+        ))
+    )
+    .unwrap();
+
+    stdout().flush().unwrap();
+    exit(0);
 }
