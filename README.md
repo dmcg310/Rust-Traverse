@@ -66,3 +66,13 @@ Run `rt` in your terminal.
 #### Help
 
 - `?`: Shows help menu.
+
+## Configuration
+
+The configuration file is located at `<config-dir>/traverse/config.txt`. The default configuration is as follows:
+
+```
+show_hidden=false
+```
+
+The bookmarks file is located at `<config-dir>/traverse/bookmarks`.
