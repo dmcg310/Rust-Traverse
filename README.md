@@ -28,6 +28,12 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 4. The binary will be in `target/release/rt`.
 5. Add the binary to your path.
 
+### From Binary
+
+1. Download the binary from the releases page.
+2. `chmod +x rt` (linux only) within the same directory as it, to make it executable.
+3. Move the resulting binary to your path.
+
 ## Usage
 
 Run `rt` in your terminal.
