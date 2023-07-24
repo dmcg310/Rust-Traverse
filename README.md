@@ -4,6 +4,8 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 
 > To traverse or not to traverse?
 
+![](traverse.gif)
+
 ## Features
 
 - [x] Full CRUD operations on files and directories.
