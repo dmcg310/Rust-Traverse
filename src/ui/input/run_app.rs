@@ -6,6 +6,7 @@ use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::backend::Backend;
 use ratatui::terminal::Terminal;
+use std::process::Command as SysCommand;
 use std::time::Duration;
 
 #[derive(PartialEq)]
@@ -166,6 +167,9 @@ pub fn run_app<B: Backend>(
                                 app.show_help = false;
                                 input.clear();
                             } else {
+                                SysCommand::new("reset").status().unwrap_or_else(|_| {
+                                    panic!("Failed to reset terminal");
+                                });
                                 nav::output_cur_dir();
                                 return Ok(());
                             }
@@ -173,6 +177,9 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char('c')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
+                            SysCommand::new("reset").status().unwrap_or_else(|_| {
+                                panic!("Failed to reset terminal");
+                            });
                             nav::output_cur_dir();
                             return Ok(());
                         }
@@ -195,6 +202,9 @@ pub fn run_app<B: Backend>(
                                     app.show_help = false;
                                     input.clear();
                                 } else {
+                                    SysCommand::new("reset").status().unwrap_or_else(|_| {
+                                        panic!("Failed to reset terminal");
+                                    });
                                     nav::output_cur_dir();
                                     return Ok(());
                                 }
