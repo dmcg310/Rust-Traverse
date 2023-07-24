@@ -16,6 +16,8 @@ pub fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]
         .title_alignment(Alignment::Center);
     f.render_widget(files_block, chunks[0]);
 
+    app.update_files();
+
     let files = app
         .files
         .items
@@ -50,16 +52,6 @@ pub fn render_files<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect]
         f.render_stateful_widget(empty_list, chunks[0], &mut app.files.state);
         return;
     }
-    // else {
-    //     // add to config file to hide hidden files
-    //     let temp = app.files.items.clone();
-    //     for file in temp {
-    //         if file.0.starts_with(".") {
-    //             let index = app.files.items.iter().position(|x| x.0 == file.0).unwrap();
-    //             app.files.items.remove(index);
-    //         }
-    //     }
-    // }
 
     f.render_stateful_widget(items, chunks[0], &mut app.files.state);
 
@@ -95,6 +87,8 @@ pub fn render_dirs<B: Backend>(f: &mut Frame<B>, app: &mut App, chunks: &[Rect])
         .iter()
         .map(|i| ListItem::new(i.0.clone()))
         .collect::<Vec<ListItem>>();
+
+    app.update_dirs();
 
     let items = List::new(dirs)
         .block(

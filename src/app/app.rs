@@ -1,3 +1,4 @@
+use crate::configuration::configuration::read_config;
 use crate::ui::display::{pane::get_du, pane::get_pwd};
 use crate::ui::input::{run_app::Command, stateful_list::StatefulList};
 use ratatui::{
@@ -24,6 +25,7 @@ pub struct App {
     pub selected_item_state: ListState,
     pub last_command: Option<Command>,
     pub bookmarked_dirs: StatefulList<String>,
+    pub show_hidden: bool,
 }
 
 impl App {
@@ -66,10 +68,16 @@ impl App {
             selected_item_state: ListState::default(),
             last_command: None,
             bookmarked_dirs: StatefulList::with_items(vec![]),
+            show_hidden: false,
         }
     }
 
+    pub fn read_config(&mut self) {
+        read_config(self);
+    }
+
     pub fn update_files(&mut self) {
+        self.read_config();
         self.files.items.clear();
 
         let mut file_entries: Vec<(String, String)> = vec![];
@@ -81,6 +89,10 @@ impl App {
                 if temp == "swapfile" {
                     // previewing this file devastates the terminal,
                     // mine anyway
+                    continue;
+                }
+
+                if temp.starts_with(".") && !self.show_hidden {
                     continue;
                 }
 
@@ -117,7 +129,12 @@ impl App {
 
             if entry.metadata().unwrap().is_dir() {
                 let temp = entry.file_name().into_string().unwrap();
-                dir_entries.push((temp.clone(), temp));
+
+                if temp.starts_with(".") && !self.show_hidden {
+                    continue;
+                }
+
+                dir_entries.push((temp.clone(), temp.clone()));
             }
         }
 

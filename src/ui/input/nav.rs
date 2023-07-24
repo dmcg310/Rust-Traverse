@@ -33,9 +33,14 @@ fn fzf(app: &mut App, input: &mut String) -> Vec<PathBuf> {
         let entry = entry.unwrap();
 
         if entry.file_type().is_file() {
-            if entry.path().to_str().unwrap().contains(".git") {
-                // config
-                continue;
+            if entry.path().to_str().unwrap().contains(".git") || !app.show_hidden {
+                if !app.show_hidden {
+                    if entry.file_name().to_str().unwrap().starts_with('.') {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
             }
 
             let filename = entry.file_name().to_str().unwrap().to_string();
