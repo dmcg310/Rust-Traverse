@@ -68,9 +68,26 @@ pub fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
     app.fzf_results = StatefulList::with_items(
         result
             .iter()
-            .map(|x| x.to_str().unwrap().to_string())
+            .map(|x| abbreviate_path(x.to_str().unwrap()))
             .collect(),
     );
+}
+
+pub fn abbreviate_path(path: &str) -> String {
+    let components: Vec<&str> = path.split("/").collect();
+    if components.len() > 4 {
+        let last_three: Vec<&str> = components.into_iter().rev().take(3).collect();
+        format!(
+            ".../{}",
+            last_three
+                .into_iter()
+                .rev()
+                .collect::<Vec<&str>>()
+                .join("/")
+        )
+    } else {
+        path.to_string()
+    }
 }
 
 pub fn output_cur_dir() {

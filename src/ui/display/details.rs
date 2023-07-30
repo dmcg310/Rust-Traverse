@@ -30,6 +30,21 @@ pub fn render_details<B: Backend>(
         )
         .split(chunks[0]);
 
+    // to fit the path in the pane
+    let mut cur_dir = cur_dir;
+    let components: Vec<&str> = cur_dir.split("/").collect();
+    if components.len() > 4 {
+        let last_three: Vec<&str> = components.into_iter().rev().take(3).collect();
+        cur_dir = format!(
+            ".../{}",
+            last_three
+                .into_iter()
+                .rev()
+                .collect::<Vec<&str>>()
+                .join("/")
+        );
+    }
+
     let selected_file = match app.files.state.selected() {
         Some(i) => match app.files.items.get(i) {
             Some(item) => &item.0,

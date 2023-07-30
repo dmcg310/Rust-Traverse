@@ -184,7 +184,7 @@ pub fn run_app<B: Backend>(
                             return Ok(());
                         }
                         KeyCode::Char('q') => {
-                            if app.show_fzf || app.show_nav {
+                            if app.show_fzf || app.show_nav || input_active {
                                 input.push('q');
                             } else {
                                 if app.show_popup

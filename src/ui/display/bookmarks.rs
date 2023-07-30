@@ -1,4 +1,5 @@
 use crate::app::app::App;
+use crate::ui::input::nav::abbreviate_path;
 use ratatui::backend::Backend;
 use ratatui::layout::Alignment;
 use ratatui::widgets::Clear;
@@ -37,7 +38,7 @@ pub fn render_bookmark<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect) 
             .bookmarked_dirs
             .items
             .iter()
-            .map(|i| ListItem::new(i.clone()))
+            .map(|i| ListItem::new(abbreviate_path(i)))
             .collect::<Vec<ListItem>>();
 
         let bookmark_list = List::new(bookmark_text)

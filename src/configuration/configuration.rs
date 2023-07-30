@@ -1,17 +1,30 @@
 use crate::app::app::App;
 use dirs::config_dir;
+use std::fs;
 use std::io::BufRead;
 use std::io::Write;
 
 pub fn read_config(app: &mut App) {
-    if !config_dir().unwrap().join("traverse/config.txt").exists() {
-        let file =
-            std::fs::File::create(config_dir().unwrap().join("traverse/config.txt")).unwrap();
+    let config_path = config_dir().unwrap().join("traverse/config.txt");
+
+    if !config_path.exists() {
+        if let Some(parent) = config_path.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent).unwrap_or_else(|_| {
+                    panic!("Failed to create directory at {}", parent.display())
+                });
+            }
+        }
+
+        let file = fs::File::create(&config_path).unwrap_or_else(|_| {
+            panic!("Failed to create config file at {}", config_path.display())
+        });
+
         let mut writer = std::io::BufWriter::new(file);
         writer.write_all(b"show_hidden=false").unwrap();
     }
 
-    let file = std::fs::File::open(config_dir().unwrap().join("traverse/config.txt")).unwrap();
+    let file = fs::File::open(config_path).unwrap();
     let reader = std::io::BufReader::new(file);
 
     for line in reader.lines() {
