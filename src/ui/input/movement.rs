@@ -58,11 +58,9 @@ pub fn handle_pane_switching(app: &mut App, key: u8) {
     if key == 1 {
         app.files.state.select(Some(0));
         app.dirs.state.select(None);
-        app.content.state.select(None);
     } else if key == 2 {
         app.dirs.state.select(Some(0));
         app.files.state.select(None);
-        app.content.state.select(None);
     }
 }
 

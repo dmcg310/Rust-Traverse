@@ -103,6 +103,12 @@ pub fn add_to_selected(app: &mut App) {
     let cur_dir = std::env::current_dir().unwrap();
     let selected = format!("{}/{}", cur_dir.display(), app.files.items[selected].0);
 
+    for file in app.selected_files.clone() {
+        if file == selected {
+            return;
+        }
+    }
+
     app.selected_files.push(selected);
 }
 

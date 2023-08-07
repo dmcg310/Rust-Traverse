@@ -1,7 +1,6 @@
 use super::*;
 use crate::app::app::App;
 use crate::ui::display::block::block_binds;
-use crate::ui::display::pane::get_pwd;
 use crate::ui::display::render::render;
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
@@ -148,9 +147,6 @@ pub fn run_app<B: Backend>(
                             } else {
                                 file_ops::handle_paste_or_move(&mut app);
                             }
-                            // } else if app.selected_files.len() > 0 || app.selected_dirs.len() > 0 {
-                            //     file_ops::handle_paste_or_move(&mut app);
-                            // }
                         }
                         KeyCode::Char('x') => {
                             if input_active {

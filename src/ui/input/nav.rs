@@ -68,7 +68,7 @@ pub fn handle_fzf(app: &mut App, input: &mut String, input_active: &mut bool) {
     app.fzf_results = StatefulList::with_items(
         result
             .iter()
-            .map(|x| abbreviate_path(x.to_str().unwrap()))
+            .map(|x| x.to_str().unwrap().to_string())
             .collect(),
     );
 }

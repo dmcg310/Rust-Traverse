@@ -81,9 +81,10 @@ impl App {
     }
 
     pub fn op_menu_init(&mut self) {
-        self.ops_menu.items.push("Copy".to_string());
-        self.ops_menu.items.push("Move".to_string());
-        self.ops_menu.items.push("Cancel".to_string());
+        self.ops_menu.items.push("Copy here".to_string());
+        self.ops_menu.items.push("Move here".to_string());
+        self.ops_menu.items.push("Delete".to_string());
+        self.ops_menu.items.push("Clear selection".to_string());
     }
 
     pub fn read_config(&mut self) {
