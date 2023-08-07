@@ -1,6 +1,7 @@
 use super::*;
 use crate::app::app::App;
 use crate::ui::display::block::block_binds;
+use crate::ui::display::pane::get_pwd;
 use crate::ui::display::render::render;
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
@@ -86,6 +87,8 @@ pub fn run_app<B: Backend>(
                                 movement::handle_fzf_movement(&mut app, 1);
                             } else if app.show_bookmark {
                                 movement::handle_bookmark_movement(&mut app, 1);
+                            } else if app.show_ops_menu {
+                                movement::handle_ops_menu_movement(&mut app, 1);
                             }
                         }
                         KeyCode::Char('n') => {
@@ -102,6 +105,8 @@ pub fn run_app<B: Backend>(
                                 movement::handle_fzf_movement(&mut app, -1);
                             } else if app.show_bookmark {
                                 movement::handle_bookmark_movement(&mut app, -1);
+                            } else if app.show_ops_menu {
+                                movement::handle_ops_menu_movement(&mut app, -1);
                             }
                         }
                         KeyCode::Char('f') => {
@@ -137,6 +142,16 @@ pub fn run_app<B: Backend>(
                                 file_ops::handle_delete(&mut app);
                             }
                         }
+                        KeyCode::Char('p') => {
+                            if input_active {
+                                input.push('p');
+                            } else {
+                                file_ops::handle_paste_or_move(&mut app);
+                            }
+                            // } else if app.selected_files.len() > 0 || app.selected_dirs.len() > 0 {
+                            //     file_ops::handle_paste_or_move(&mut app);
+                            // }
+                        }
                         KeyCode::Char('x') => {
                             if input_active {
                                 input.push('x');
@@ -157,6 +172,7 @@ pub fn run_app<B: Backend>(
                                 || app.show_fzf
                                 || app.show_bookmark
                                 || app.show_help
+                                || app.show_ops_menu
                             {
                                 input_active = false;
                                 app.show_popup = false;
@@ -165,6 +181,7 @@ pub fn run_app<B: Backend>(
                                 app.last_command = None;
                                 app.show_bookmark = false;
                                 app.show_help = false;
+                                app.show_ops_menu = false;
                                 input.clear();
                             } else {
                                 SysCommand::new("reset").status().unwrap_or_else(|_| {
@@ -192,6 +209,7 @@ pub fn run_app<B: Backend>(
                                     || app.show_fzf
                                     || app.show_bookmark
                                     || app.show_help
+                                    || app.show_ops_menu
                                 {
                                     input_active = false;
                                     app.show_popup = false;
@@ -200,6 +218,7 @@ pub fn run_app<B: Backend>(
                                     app.last_command = None;
                                     app.show_bookmark = false;
                                     app.show_help = false;
+                                    app.show_ops_menu = false;
                                     input.clear();
                                 } else {
                                     SysCommand::new("reset").status().unwrap_or_else(|_| {
@@ -232,6 +251,10 @@ pub fn run_app<B: Backend>(
                                 );
                             } else if app.show_bookmark {
                                 submit::handle_open_bookmark(&mut app);
+                            } else if app.show_ops_menu {
+                                file_ops::handle_paste_or_move(&mut app);
+                            } else if app.files.state.selected().is_some() {
+                                file_ops::add_to_selected(&mut app);
                             } else {
                                 submit::handle_submit(&mut app, &mut input, &mut input_active);
                             }

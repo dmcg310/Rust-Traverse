@@ -97,3 +97,59 @@ pub fn extract(app: &mut App) {
         }
     }
 }
+
+pub fn add_to_selected(app: &mut App) {
+    let selected = app.files.state.selected().unwrap();
+    let cur_dir = std::env::current_dir().unwrap();
+    let selected = format!("{}/{}", cur_dir.display(), app.files.items[selected].0);
+
+    app.selected_files.push(selected);
+}
+
+pub fn handle_paste_or_move(app: &mut App) {
+    // TODO:
+    // copying files into directories where they already exist
+    // (error box maybe for global error handling)
+    app.show_ops_menu = true;
+
+    if let Some(selected) = app.ops_menu.state.selected() {
+        let cur_dir = std::env::current_dir().unwrap();
+
+        match selected {
+            0 => {
+                for file in app.selected_files.clone() {
+                    for cur_files in app.files.items.clone() {
+                        if file == cur_files.0 {
+                            continue;
+                        }
+
+                        let mut cmd = std::process::Command::new("cp")
+                            .arg("-r")
+                            .arg("--")
+                            .arg(&file)
+                            .arg(&cur_dir)
+                            .spawn()
+                            .expect("Failed to copy file");
+
+                        if let Err(e) = cmd.wait() {
+                            println!("Failed to wait for copy command: {}", e);
+                        }
+
+                        app.show_ops_menu = false;
+                        app.update_files();
+                        app.update_dirs();
+                    }
+                }
+            }
+            1 => {
+                // move
+                println!("Move to here");
+            }
+            2 => {
+                // cancel
+                println!("Cancel");
+            }
+            _ => {}
+        }
+    }
+}

@@ -26,6 +26,10 @@ pub struct App {
     pub last_command: Option<Command>,
     pub bookmarked_dirs: StatefulList<String>,
     pub show_hidden: bool,
+    pub show_ops_menu: bool,
+    pub selected_files: Vec<String>,
+    pub selected_dirs: Vec<String>,
+    pub ops_menu: StatefulList<String>,
 }
 
 impl App {
@@ -69,7 +73,17 @@ impl App {
             last_command: None,
             bookmarked_dirs: StatefulList::with_items(vec![]),
             show_hidden: false,
+            show_ops_menu: false,
+            selected_files: vec![],
+            selected_dirs: vec![],
+            ops_menu: StatefulList::with_items(vec![]),
         }
+    }
+
+    pub fn op_menu_init(&mut self) {
+        self.ops_menu.items.push("Copy".to_string());
+        self.ops_menu.items.push("Move".to_string());
+        self.ops_menu.items.push("Cancel".to_string());
     }
 
     pub fn read_config(&mut self) {

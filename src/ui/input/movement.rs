@@ -17,12 +17,6 @@ pub fn handle_movement(app: &mut App, key: char) {
         } else {
             app.dirs.previous();
         }
-    } else if app.content.state.selected().is_some() {
-        if key == 'j' {
-            app.content.next();
-        } else {
-            app.content.previous();
-        }
     }
 }
 
@@ -69,5 +63,20 @@ pub fn handle_pane_switching(app: &mut App, key: u8) {
         app.dirs.state.select(Some(0));
         app.files.state.select(None);
         app.content.state.select(None);
+    }
+}
+
+pub fn handle_ops_menu_movement(app: &mut App, idx: isize) {
+    let results = app.ops_menu.items.len();
+
+    if results > 0 {
+        if app.ops_menu.state.selected().is_none() {
+            app.ops_menu.state.select(Some(0));
+        } else {
+            let selected = app.ops_menu.state.selected().unwrap() as isize;
+            let new_selected = (selected + idx).rem_euclid(results as isize) as usize;
+
+            app.ops_menu.state.select(Some(new_selected));
+        }
     }
 }

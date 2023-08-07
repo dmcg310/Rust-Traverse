@@ -26,7 +26,8 @@ pub fn init() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     let tick_rate = Duration::from_millis(250);
-    let app = App::new();
+    let mut app = App::new();
+    app.op_menu_init();
     let res = run_app(&mut terminal, app, tick_rate);
 
     disable_raw_mode()?;
@@ -84,6 +85,7 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App, input: &mut String) {
     navs::render_fzf(f, app, size);
     help::render_help(f, app, size);
     bookmarks::render_bookmark(f, app, size);
+    ops::render_ops_menu(f, app, size);
 }
 
 fn bottom_chunks<B: Backend>(f: &mut Frame<B>) -> Vec<Rect> {

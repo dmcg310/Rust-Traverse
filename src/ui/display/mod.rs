@@ -8,3 +8,4 @@ pub mod pane;
 pub mod render;
 pub mod help;
 pub mod block;
+pub mod ops;
