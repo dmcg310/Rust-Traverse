@@ -93,6 +93,8 @@ pub fn run_app<B: Backend>(
                         KeyCode::Char('n') => {
                             if input_active {
                                 input.push('n');
+                            } else if app.show_ops_menu {
+                                continue;
                             } else {
                                 file_ops::handle_new_file(&mut app, &mut input_active);
                             }
@@ -132,6 +134,15 @@ pub fn run_app<B: Backend>(
                                 nav::handle_fzf(&mut app, &mut input, &mut input_active);
                             }
                         }
+                        KeyCode::Char('c')
+                            if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
+                        {
+                            SysCommand::new("reset").status().unwrap_or_else(|_| {
+                                panic!("Failed to reset terminal");
+                            });
+                            nav::output_cur_dir();
+                            return Ok(());
+                        }
                         KeyCode::Char('d')
                             if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
                         {
@@ -141,11 +152,19 @@ pub fn run_app<B: Backend>(
                                 file_ops::handle_delete(&mut app);
                             }
                         }
+                        KeyCode::Char('c') => {
+                            if input_active {
+                                input.push('c');
+                            } else {
+                                file_ops::add_to_selected(&mut app);
+                            }
+                        }
                         KeyCode::Char('p') => {
                             if input_active {
                                 input.push('p');
                             } else {
                                 file_ops::handle_paste_or_move(&mut app);
+                                app.show_ops_menu = true;
                             }
                         }
                         KeyCode::Char('x') => {
@@ -186,15 +205,6 @@ pub fn run_app<B: Backend>(
                                 nav::output_cur_dir();
                                 return Ok(());
                             }
-                        }
-                        KeyCode::Char('c')
-                            if key.modifiers.contains(event::KeyModifiers::CONTROL) =>
-                        {
-                            SysCommand::new("reset").status().unwrap_or_else(|_| {
-                                panic!("Failed to reset terminal");
-                            });
-                            nav::output_cur_dir();
-                            return Ok(());
                         }
                         KeyCode::Char('q') => {
                             if app.show_fzf || app.show_nav || input_active {
@@ -245,12 +255,12 @@ pub fn run_app<B: Backend>(
                                     &mut input,
                                     &mut input_active,
                                 );
+                            } else if input_active {
+                                submit::handle_submit(&mut app, &mut input, &mut input_active);
                             } else if app.show_bookmark {
                                 submit::handle_open_bookmark(&mut app);
                             } else if app.show_ops_menu {
                                 file_ops::handle_paste_or_move(&mut app);
-                            } else if app.files.state.selected().is_some() {
-                                file_ops::add_to_selected(&mut app);
                             } else {
                                 submit::handle_submit(&mut app, &mut input, &mut input_active);
                             }

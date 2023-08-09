@@ -98,7 +98,18 @@ pub fn extract(app: &mut App) {
     }
 }
 
-pub fn add_to_selected(app: &mut App) {
+fn add_dir(app: &mut App) {
+    let selected = app.dirs.state.selected().unwrap();
+    let cur_dir = std::env::current_dir().unwrap();
+
+    app.selected_files.push(format!(
+        "{}/{}",
+        cur_dir.display(),
+        app.dirs.items[selected].0
+    ));
+}
+
+fn add_file(app: &mut App) {
     let selected = app.files.state.selected().unwrap();
     let cur_dir = std::env::current_dir().unwrap();
     let selected = format!("{}/{}", cur_dir.display(), app.files.items[selected].0);
@@ -110,6 +121,14 @@ pub fn add_to_selected(app: &mut App) {
     }
 
     app.selected_files.push(selected);
+}
+
+pub fn add_to_selected(app: &mut App) {
+    if app.dirs.state.selected().is_some() {
+        add_dir(app);
+    } else if app.files.state.selected().is_some() {
+        add_file(app);
+    }
 }
 
 pub fn handle_paste_or_move(app: &mut App) {
@@ -149,11 +168,35 @@ pub fn handle_paste_or_move(app: &mut App) {
             }
             1 => {
                 // move
-                println!("Move to here");
+                for file in app.selected_files.clone() {
+                    for cur_files in app.files.items.clone() {
+                        if file == cur_files.0 {
+                            continue;
+                        }
+
+                        let mut cmd = std::process::Command::new("mv")
+                            .arg(&file)
+                            .arg(&cur_dir)
+                            .spawn()
+                            .expect("Failed to move file");
+
+                        if let Err(e) = cmd.wait() {
+                            println!("Failed to wait for move command: {}", e);
+                        }
+
+                        app.show_ops_menu = false;
+                        app.last_command = None;
+                        app.selected_files = vec![];
+                        app.update_files();
+                        app.update_dirs();
+                    }
+                }
             }
             2 => {
-                // cancel
-                println!("Cancel");
+                // clear selection
+                app.selected_files = vec![];
+                app.last_command = None;
+                app.show_ops_menu = false;
             }
             _ => {}
         }
