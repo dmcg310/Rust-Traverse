@@ -135,35 +135,44 @@ pub fn handle_paste_or_move(app: &mut App) {
     // TODO:
     // copying files into directories where they already exist
     // (error box maybe for global error handling)
-    app.show_ops_menu = true;
+    if app.selected_files.len() == 0 {
+        if app.selected_dirs.len() == 0 {
+            return;
+        }
+    }
 
     if let Some(selected) = app.ops_menu.state.selected() {
-        let cur_dir = std::env::current_dir().unwrap();
-
+        let mut cur_dir = std::env::current_dir().unwrap();
         match selected {
             0 => {
+                // copy
                 for file in app.selected_files.clone() {
                     for cur_files in app.files.items.clone() {
                         if file == cur_files.0 {
                             continue;
                         }
 
-                        let mut cmd = std::process::Command::new("cp")
+                        std::process::Command::new("cp")
                             .arg("-r")
-                            .arg("--")
                             .arg(&file)
                             .arg(&cur_dir)
                             .spawn()
                             .expect("Failed to copy file");
 
-                        if let Err(e) = cmd.wait() {
-                            println!("Failed to wait for copy command: {}", e);
-                        }
-
                         app.show_ops_menu = false;
+                        app.last_command = None;
+                        app.selected_files = vec![];
+                        app.selected_dirs = vec![];
+
                         app.update_files();
                         app.update_dirs();
+
+                        app.files
+                            .state
+                            .select(Some(app.files.items.len().saturating_sub(1)));
                     }
+
+                    cur_dir = std::env::current_dir().unwrap();
                 }
             }
             1 => {
@@ -174,29 +183,38 @@ pub fn handle_paste_or_move(app: &mut App) {
                             continue;
                         }
 
-                        let mut cmd = std::process::Command::new("mv")
+                        std::process::Command::new("mv")
                             .arg(&file)
                             .arg(&cur_dir)
                             .spawn()
                             .expect("Failed to move file");
 
-                        if let Err(e) = cmd.wait() {
-                            println!("Failed to wait for move command: {}", e);
-                        }
-
                         app.show_ops_menu = false;
                         app.last_command = None;
                         app.selected_files = vec![];
+                        app.selected_dirs = vec![];
+
                         app.update_files();
                         app.update_dirs();
+
+                        app.files
+                            .state
+                            .select(Some(app.files.items.len().saturating_sub(1)));
+
+                        cur_dir = std::env::current_dir().unwrap();
                     }
                 }
             }
             2 => {
                 // clear selection
-                app.selected_files = vec![];
                 app.last_command = None;
                 app.show_ops_menu = false;
+
+                app.selected_files = vec![];
+                app.selected_dirs = vec![];
+
+                app.update_files();
+                app.update_dirs();
             }
             _ => {}
         }

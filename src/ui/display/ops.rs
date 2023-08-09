@@ -82,7 +82,7 @@ pub fn render_ops_menu<B: Backend>(f: &mut Frame<B>, app: &mut App, size: Rect) 
         let selected_files_list = List::new(selected_files_text).block(
             Block::default()
                 .style(Style::default().add_modifier(Modifier::BOLD))
-                .title("Currently Selected Files")
+                .title("Currently Selected Files/Dirs")
                 .border_style(
                     Style::default()
                         .fg(Color::LightYellow)
