@@ -85,6 +85,8 @@ The configuration file is located at `<config-dir>/traverse/config.txt`. The def
 
 ```
 show_hidden=false
+excluded_directories=.git,.idea,.vscode,target
 ```
 
+The excluded directories are directories that will not be searched when using the FZF.
 The bookmarks file is located at `<config-dir>/traverse/bookmarks`.
