@@ -6,16 +6,21 @@ pub fn handle_movement(app: &mut App, key: char) {
     }
 
     if app.files.state.selected().is_some() {
-        if key == 'j' {
-            app.files.next();
-        } else {
-            app.files.previous();
+        // if there are more than 1 files allow movement
+        if app.files.items.len() > 1 {
+            if key == 'j' {
+                app.files.next();
+            } else {
+                app.files.previous();
+            }
         }
     } else if app.dirs.state.selected().is_some() {
-        if key == 'j' {
-            app.dirs.next();
-        } else {
-            app.dirs.previous();
+        if app.dirs.items.len() > 1 {
+            if key == 'j' {
+                app.dirs.next();
+            } else {
+                app.dirs.previous();
+            }
         }
     }
 }

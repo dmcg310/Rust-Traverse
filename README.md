@@ -9,6 +9,7 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 ## Features
 
 - [x] Full CRUD operations on files and directories.
+- [x] Move and copy files and directories.
 - [x] Keyboard shortcuts for navigation and operations, to make sure you don't have to leave the keyboard.
 - [x] Traverse directly to a directory by typing its path.
 - [x] Configurable.
@@ -55,6 +56,11 @@ Run `rt` in your terminal.
 - `r`: Rename the selected file or directory.
 - `f`: Navigate to a directory using a relative or absolute path.
 - `x`: Extract the selected archive, to the current directory.
+
+#### Move/Copy Operations
+
+- `c`: Append the selected file or directory to the move/copy buffer.
+- `p`: Opens the move/copy buffer menu, (enter on any option is in relation to your current directory).
 
 #### Fuzzy Finder Operations
 

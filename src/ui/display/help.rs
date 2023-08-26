@@ -51,6 +51,10 @@ f: Navigate to a directory using a relative or absolute path.
 x: Extract the selected archive, to the current directory.
 w: Open fzf.
 
+c: Append the selected file or directory to the move/copy buffer.
+p: Opens the move/copy buffer menu, (enter on any option is in 
+            relation to your current directory).
+
 b: Shows bookarks menu.
 z: Add current directory to bookmarks.
 
