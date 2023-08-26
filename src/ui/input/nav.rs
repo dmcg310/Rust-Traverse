@@ -33,6 +33,19 @@ fn fzf(app: &mut App, input: &mut String) -> Vec<PathBuf> {
         let entry = entry.unwrap();
 
         if entry.file_type().is_file() {
+            let mut should_exclude = false;
+
+            for dir in &app.excluded_directories {
+                if entry.path().to_str().unwrap().contains(dir) {
+                    should_exclude = true;
+                    break;
+                }
+            }
+
+            if should_exclude {
+                continue;
+            }
+
             if entry.path().to_str().unwrap().contains(".git") || !app.show_hidden {
                 if !app.show_hidden {
                     if entry.file_name().to_str().unwrap().starts_with('.') {
