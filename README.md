@@ -70,7 +70,7 @@ Run `rt` in your terminal.
 
 #### Bookmark Operations
 
-- `b`: Shows bookarks menu.
+- `b`: Shows bookmarks menu.
 - `z`: Add current directory to bookmarks.
 - `CTRL + n`: 'Next' bookmark in menu.
 - `CTRL + p`: 'Previous' bookmark in menu.
