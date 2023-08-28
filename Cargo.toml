@@ -1,6 +1,6 @@
 [package]
 name = "rst-traverse"
-version = "2.0.0"
+version = "2.0.1"
 edition = "2021"
 description = "A terminal based file manager."
 authors = ["dmcg310"]
