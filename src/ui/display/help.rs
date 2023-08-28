@@ -55,7 +55,7 @@ c: Append the selected file or directory to the move/copy buffer.
 p: Opens the move/copy buffer menu, (enter on any option is in 
             relation to your current directory).
 
-b: Shows bookarks menu.
+b: Shows bookmarks menu.
 z: Add current directory to bookmarks.
 
 CTRL + n: 'Next' item in results.
