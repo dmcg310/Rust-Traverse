@@ -4,7 +4,7 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 
 > To traverse or not to traverse?
 
-![](traverse.gif)
+![Rust-Traverse](traverse.gif)
 
 ## Features
 
@@ -29,15 +29,23 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 4. The binary will be in `target/release/rt`.
 5. Add the binary to your path.
 
+### From Cargo
+
+1. Install [Rust](https://www.rust-lang.org/tools/install).
+2. Run `cargo install rst-traverse`.
+3. Add the binary to your path.
+4. Make sure cargo's bin directory is in your path.
+5. (Optional) Rename the binary to `rt` or whatever suits you.
+
 ### From Binary
 
 1. Download the binary from the releases page.
-2. `chmod +x rt` (linux only) within the same directory as it, to make it executable.
+2. `chmod +x rst-traverse` (linux only) within the same directory as it, to make it executable.
 3. Move the resulting binary to your path.
 
 ## Usage
 
-Run `rt` in your terminal.
+Run `rst-traverse` in your terminal.
 
 ### Keyboard Shortcuts
 
@@ -89,4 +97,5 @@ excluded_directories=.git,.idea,.vscode,target
 ```
 
 The excluded directories are directories that will not be searched when using the FZF.
-The bookmarks file is located at `<config-dir>/traverse/bookmarks`.
+
+The bookmarks file is located at `<config-dir>/traverse/bookmarks.txt`.
