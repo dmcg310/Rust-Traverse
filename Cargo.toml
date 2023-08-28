@@ -1,5 +1,5 @@
 [package]
-name = "rt"
+name = "rst-traverse"
 version = "2.0.0"
 edition = "2021"
 description = "A terminal based file manager."
