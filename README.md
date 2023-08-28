@@ -26,16 +26,15 @@ Rust traverse is a terminal based file explorer. It is inspired by the [NNN](htt
 1. Install [Rust](https://www.rust-lang.org/tools/install).
 2. Clone the repository.
 3. Run `cargo build --release`.
-4. The binary will be in `target/release/rt`.
+4. The binary will be in `target/release/rst-traverse`.
 5. Add the binary to your path.
 
 ### From Cargo
 
 1. Install [Rust](https://www.rust-lang.org/tools/install).
 2. Run `cargo install rst-traverse`.
-3. Add the binary to your path.
-4. Make sure cargo's bin directory is in your path.
-5. (Optional) Rename the binary to `rt` or whatever suits you.
+3. Make sure cargo's bin directory is in your path.
+4. (Optional) Rename the binary to whatever suits you.
 
 ### From Binary
 
